@@ -3,6 +3,12 @@ import {
   Sparkles,
   GraduationCap,
   Briefcase,
+  School,
+  Film,
+  UserPlus,
+  BriefcaseBusiness,
+  BookOpen,
+
 } from 'lucide-react';
 
 import {
@@ -21,77 +27,91 @@ export default function CommunityTeam() {
   /* CARDS */
   /* ===================================== */
 
-  const modules = [
+ const modules = [
 
-    {
-      title:
-        'Centinary Celebration',
+  {
+    title: 'Centinary Celebration',
+    description:
+      'Manage school celebration activities and reports.',
+    icon: <Sparkles size={38} />,
+    color: 'from-pink-500 to-rose-500',
+    path: '/communityteam/centinary',
+  },
 
-      description:
-        'Manage school celebration activities and reports.',
+  {
+    title: 'SMC',
+    description:
+      'School Management Committee reports and activities.',
+    icon: <Users size={38} />,
+    color: 'from-blue-500 to-cyan-500',
+    path: '/communityteam/smc',
+  },
 
-      icon:
-        <Sparkles size={38} />,
+  {
+    title: 'Ambassador',
+    description:
+      'Track ambassador programs and student engagement.',
+    icon: <GraduationCap size={38} />,
+    color: 'from-violet-500 to-purple-500',
+    path: '/communityteam/ambassador',
+  },
 
-      color:
-        'from-pink-500 to-rose-500',
+  {
+    title: 'Career Guidance',
+    description:
+      'Career sessions and mentorship management.',
+    icon: <Briefcase size={38} />,
+    color: 'from-emerald-500 to-green-500',
+    path: '/communityteam/careerguidance',
+  },
 
-      path:
-        '/communityteam/centinary',
-    },
+  {
+    title: 'ACIS',
+    description:
+      'ACIS program monitoring and reports.',
+    icon: <School size={38} />,
+    color: 'from-orange-500 to-amber-500',
+    path: '/communityteam/acis',
+  },
 
-    {
-      title:
-        'SMC',
+  {
+    title: 'Movie Screening',
+    description:
+      'Movie screening activities and schedules.',
+    icon: <Film size={38} />,
+    color: 'from-red-500 to-pink-500',
+    path: '/communityteam/moviescreening',
+  },
 
-      description:
-        'School Management Committee reports and activities.',
+  {
+    title: 'Enrollment',
+    description:
+      'Student enrollment tracking and management.',
+    icon: <UserPlus size={38} />,
+    color: 'from-teal-500 to-cyan-500',
+    path: '/communityteam/enrollment',
+  },
 
-      icon:
-        <Users size={38} />,
+  {
+    title: 'Vocation',
+    description:
+      'Vocational training programs and activities.',
+    icon: <BriefcaseBusiness size={38} />,
+    color: 'from-indigo-500 to-blue-500',
+    path: '/communityteam/vocation',
+  },
 
-      color:
-        'from-blue-500 to-cyan-500',
+  {
+    title: 'Alumni Magazine',
+    description:
+      'Manage alumni magazines and publications.',
+    icon: <BookOpen size={38} />,
+    color: 'from-fuchsia-500 to-purple-500',
+    path: '/communityteam/alumnimagazine',
+  },
+  
 
-      path:
-        '/communityteam/smc',
-    },
-
-    {
-      title:
-        'Ambassador',
-
-      description:
-        'Track ambassador programs and student engagement.',
-
-      icon:
-        <GraduationCap size={38} />,
-
-      color:
-        'from-violet-500 to-purple-500',
-
-      path:
-        '/communityteam/ambassador',
-    },
-
-    {
-      title:
-        'Career Guidance',
-
-      description:
-        'Career sessions and mentorship management.',
-
-      icon:
-        <Briefcase size={38} />,
-
-      color:
-        'from-emerald-500 to-green-500',
-
-      path:
-        '/communityteam/careerguidance',
-    },
-
-  ];
+]
 
   return (
 

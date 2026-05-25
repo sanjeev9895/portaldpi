@@ -1,6 +1,7 @@
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
+from sqlalchemy import text
 
 from database import SessionLocal, engine
 import models
@@ -125,6 +126,15 @@ def delete_employee(
     if employee:
 
         db.delete(employee)
+
+        db.commit()
+
+        db.execute(text("""
+        SELECT setval(
+            'employees_id_seq',
+            COALESCE((SELECT MAX(id) FROM employees), 1)
+        )
+        """))
 
         db.commit()
 

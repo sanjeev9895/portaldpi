@@ -5,65 +5,87 @@ import {
 } from 'react-router-dom';
 
 import DashboardLayout
-from './layouts/DashboardLayout';
+  from './layouts/DashboardLayout';
 
 import Dashboard
-from './pages/Dashboard';
+  from './pages/Dashboard';
 
 import Employees
-from './pages/Employees';
+  from './pages/Employees';
 
 import Reports
-from './pages/Reports';
+  from './pages/Reports';
 
 import Settings
-from './pages/Settings';
+  from './pages/Settings';
 
 import Login
-from './pages/Login';
+  from './pages/Login';
 
 import Attendance
-from './pages/Attendance';
+  from './pages/Attendance';
 
 import Notifications
-from './pages/Notification';
+  from './pages/Notification';
 
 import Register
-from './pages/Register';
+  from './pages/Register';
 
 import ForgotPassword
-from './pages/Forgotpassword';
+  from './pages/Forgotpassword';
 
 import ProfileSettings
-from './pages/profile-settings';
+  from './pages/profile-settings';
 
 import NotificationSettings
-from './pages/NotificationSettings';
+  from './pages/NotificationSettings';
 
 import SecuritySettings
-from './pages/SecuritySettings';
+  from './pages/SecuritySettings';
 
 import MentorshipTeam
-from './pages/mentorshipteam';
+  from './pages/mentorshipteam';
 
 /* ===================================== */
 /* COMMUNITY TEAM PAGES */
 /* ===================================== */
 
 import CommunityTeam
-from './pages/communityteam';
+  from './pages/communityteam';
 
 import Centinary
-from './pages/communityteam/centinary';
+  from './pages/communityteam/centinary';
 
 import Smc
-from './pages/communityteam/Smc';
+  from './pages/communityteam/Smc';
 
 import Ambassador
-from './pages/communityteam/Ambassador';
+  from './pages/communityteam/Ambassador';
 
 import CareerGuidance
-from './pages/communityteam/CareerGuidance';
+  from './pages/communityteam/CareerGuidance';
+
+import AlumniMagazine
+  from './pages/communityteam/alumnimagazine'
+
+import ACIS
+  from './pages/communityteam/acis';
+
+import MovieScreening
+  from './pages/communityteam/moviescreening';
+
+import Enrollment
+  from './pages/communityteam/enrollment';
+
+import Vocation
+  from './pages/communityteam/vocation';
+import Kanavaciriyar from './pages/communityteam/kanavaciriyar';
+import Thensittu from './pages/communityteam/thensittu';
+
+
+import Oonjal from './pages/communityteam/oonjal';
+
+
 
 export default function App() {
 
@@ -178,6 +200,48 @@ export default function App() {
           }
         />
 
+        <Route
+          path="/communityteam/acis"
+          element={<ACIS />}
+        />
+
+        <Route
+          path="/communityteam/moviescreening"
+          element={<MovieScreening />}
+        />
+
+        <Route
+          path="/communityteam/enrollment"
+          element={<Enrollment />}
+        />
+
+        <Route
+          path="/communityteam/vocation"
+          element={<Vocation />}
+        />
+
+        <Route
+          path="/communityteam/alumnimagazine"
+          element={<AlumniMagazine />}
+        />
+
+
+        <Route
+          path="/communityteam/kanavaciriyar"
+          element={<Kanavaciriyar />}
+        />
+
+        <Route
+          path="/communityteam/thensittu"
+          element={<Thensittu />}
+        />
+
+        <Route
+          path="/communityteam/oonjal"
+          element={<Oonjal />}
+        />
+
+
         {/* ===================================== */}
         {/* MENTORSHIP */}
         {/* ===================================== */}
@@ -230,4 +294,4 @@ export default function App() {
 
     </Routes>
   );
-}
+} 
