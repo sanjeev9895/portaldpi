@@ -5,21 +5,30 @@ from sqlalchemy.orm import Session
 from database import SessionLocal, engine
 import models
 
+from fastapi.middleware.cors import CORSMiddleware
+
+# =====================================
+# APP
+# =====================================
+app = FastAPI()
+
+
+# =====================================
+# CORS
+# =====================================
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 # =====================================
 # CREATE TABLES
 # =====================================
 
 models.Base.metadata.create_all(bind=engine)
-
-# =====================================
-# APP
-# =====================================
-
-app = FastAPI()
-
-# =====================================
-# CORS
-# =====================================
 
 app.add_middleware(
     CORSMiddleware,
