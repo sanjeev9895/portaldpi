@@ -43,16 +43,10 @@ export default function CommunityTeam() {
       setTeamData(
 
         Array.isArray(
-          response.data
+          response.data.data
         )
 
-          ? response.data
-
-          : Array.isArray(
-            response.data.data
-          )
-
-            ? response.data.data
+          ? response.data.data
 
             : []
 
