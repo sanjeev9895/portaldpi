@@ -8,7 +8,6 @@ import {
     Eye,
     Pencil,
     Trash2,
-    ArrowLeft,
 } from 'lucide-react'
 
 import {
@@ -25,9 +24,6 @@ import api from '../../../services/api'
 import BackButton from '../../../components/BackButton'
 
 export default function AmbassadorList() {
-
-    const navigate =
-        useNavigate()
 
     const [search, setSearch] =
         useState('')
