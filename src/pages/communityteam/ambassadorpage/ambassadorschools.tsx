@@ -171,21 +171,6 @@ export default function AmbassadorSchools() {
 
     ).size
 
-  const completionRate =
-
-    filteredData.length > 0
-
-      ? Math.round(
-
-          (
-            completedCount /
-            filteredData.length
-          ) * 100
-
-        )
-
-      : 0
-
   return (
 
     <div className="
