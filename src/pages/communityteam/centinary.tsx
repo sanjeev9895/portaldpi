@@ -20,6 +20,11 @@ export default function CommunityTeam() {
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('All')
   const [categoryFilter, setCategoryFilter] = useState('All')
+  const [yearFilter, setYearFilter] = useState('2026')
+  const years = Array.from(
+    { length: 30 },
+    (_, i) => (2020 + i).toString()
+  )
   const [teamData, setTeamData] = useState<any[]>([])
   const [currentPage, setCurrentPage] = useState(1)
   const [isEditOpen, setIsEditOpen] = useState(false)
@@ -48,7 +53,7 @@ export default function CommunityTeam() {
 
           ? response.data.data
 
-            : []
+          : []
 
       )
     } finally {
@@ -79,6 +84,7 @@ export default function CommunityTeam() {
   }
 
   const filteredData = teamData.filter((item) => {
+
     const matchesSearch =
 
       item.school_name
@@ -90,25 +96,52 @@ export default function CommunityTeam() {
       item.udise_code
         ?.toString()
         .includes(search)
-    const matchesStatus = statusFilter === 'All' ? true : item.centenary_celebration_status === statusFilter
-    const matchesCategory = categoryFilter === 'All' ? true : item.school_category === categoryFilter
-    return matchesSearch && matchesStatus && matchesCategory
+
+    const matchesStatus =
+      statusFilter === 'All'
+        ? true
+        : item.centenary_celebration_status === statusFilter
+
+    const matchesCategory =
+      categoryFilter === 'All'
+        ? true
+        : item.school_category === categoryFilter
+
+    const celebrationYear =
+      item.celebration_date
+        ? new Date(item.celebration_date)
+          .getFullYear()
+          .toString()
+        : '2026'
+
+    const matchesYear =
+      yearFilter === 'All'
+        ? true
+        : celebrationYear === yearFilter
+
+    return (
+      matchesSearch &&
+      matchesStatus &&
+      matchesCategory &&
+      matchesYear
+    )
   })
 
   const totalPages = Math.ceil(filteredData.length / itemsPerPage)
   const startIndex = (currentPage - 1) * itemsPerPage
   const currentData = filteredData.slice(startIndex, startIndex + itemsPerPage)
   const categories = ['All', ...new Set(teamData.map((item) => item.school_category))]
-const activeCount = teamData.filter(
+  const activeCount = teamData.filter(
 
-(item) =>
+    (item) =>
 
-item.centenary_celebration_status ?.toLowerCase() ?.trim() === 'completed').length
-  
-const pendingCount = teamData.filter( (item) => {
+      item.centenary_celebration_status?.toLowerCase()?.trim() === 'completed').length
 
-const status = item.centenary_celebration_status ?.toLowerCase() ?.trim() 
-   return status !== 'completed' } ).length
+  const pendingCount = teamData.filter((item) => {
+
+    const status = item.centenary_celebration_status?.toLowerCase()?.trim()
+    return status !== 'completed'
+  }).length
 
   const districtCount = new Set(teamData.map((item) => item.district)).size
   const completionRate = teamData.length > 0 ? Math.round((activeCount / teamData.length) * 100) : 0
@@ -658,6 +691,42 @@ const status = item.centenary_celebration_status ?.toLowerCase() ?.trim()
             <h1>Centenary Celebration Schools </h1>
             <p>Centenary celebration tracking · Tamil Nadu Schools</p>
           </div>
+
+          <div className="ct-select-wrap">
+
+            <Filter
+              size={15}
+              style={{
+                color: '#94a3b8',
+                flexShrink: 0
+              }}
+            />
+
+            <select
+              value={yearFilter}
+              onChange={(e) => {
+                setYearFilter(
+                  e.target.value
+                )
+                setCurrentPage(1)
+              }}
+            >
+              <option value="All">
+               All Years  
+              </option>
+              {
+                years.map((year) => (
+                  <option
+                    key={year}
+                    value={year}
+                  >
+                    {year}
+                  </option>
+                ))
+              }
+            </select>
+          </div>
+
           <div className="ct-header-badge">
             <span className="dot" />
             Live Data
@@ -783,6 +852,8 @@ const status = item.centenary_celebration_status ?.toLowerCase() ?.trim()
                 <option key={i} value={cat}>{cat === 'All' ? 'All Categories' : cat}</option>
               ))}
             </select>
+
+
           </div>
 
           <div className="ct-results-count">

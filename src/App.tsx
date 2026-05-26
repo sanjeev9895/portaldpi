@@ -60,7 +60,11 @@ import Smc
   from './pages/communityteam/Smc';
 
 import Ambassador
-  from './pages/communityteam/Ambassador';
+  from './pages/communityteam/ambassadorpage/Ambassador';
+
+import AmbassadorList from './pages/communityteam/ambassadorpage/ambassadorlist'
+
+import AmbassadorSchools from './pages/communityteam/ambassadorpage/ambassadorschools'
 
 import CareerGuidance
   from './pages/communityteam/CareerGuidance';
@@ -84,6 +88,7 @@ import Thensittu from './pages/communityteam/thensittu';
 
 
 import Oonjal from './pages/communityteam/oonjal';
+
 
 
 
@@ -239,6 +244,16 @@ export default function App() {
         <Route
           path="/communityteam/oonjal"
           element={<Oonjal />}
+        />
+
+        <Route
+          path="/communityteam/ambassadorpage/ambassadorlist"
+          element={<AmbassadorList />}
+        />
+
+        <Route
+          path="/communityteam/ambassadorpage/ambassadorschools"
+          element={<AmbassadorSchools />}
         />
 
 

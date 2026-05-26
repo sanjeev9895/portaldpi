@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI, Depends,HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from sqlalchemy import text
@@ -385,4 +385,230 @@ def delete_school(
     return {
         "message":
         "School Deleted"
+    }
+
+# =====================================
+# GET ALL
+# =====================================
+
+@app.get("/ambassador-schools")
+
+def get_ambassador_schools(
+
+    db: Session = Depends(get_db)
+
+):
+
+    schools = db.query(
+        models.AmbassadorSchool
+    ).all()
+
+    return {
+        "data": schools
+    }
+
+
+# =====================================
+# GET SINGLE
+# =====================================
+
+@app.get("/ambassador-schools/{id}")
+
+def get_single_ambassador_school(
+
+    id: int,
+
+    db: Session = Depends(get_db)
+
+):
+
+    school = db.query(
+        models.AmbassadorSchool
+    ).filter(
+
+        models.AmbassadorSchool.id == id
+
+    ).first()
+
+    if not school:
+
+        raise HTTPException(
+
+            status_code=404,
+
+            detail="School not found"
+
+        )
+
+    return school
+
+
+# =====================================
+# CREATE
+# =====================================
+
+@app.post("/ambassador-schools")
+
+def create_ambassador_school(
+
+    data: dict,
+
+    db: Session = Depends(get_db)
+
+):
+
+    new_school = models.AmbassadorSchool(
+
+        udise_code=data.get(
+            "udise_code"
+        ),
+
+        district=data.get(
+            "district"
+        ),
+
+        block=data.get(
+            "block"
+        ),
+
+        school_name=data.get(
+            "school_name"
+        ),
+
+        category_group=data.get(
+            "category_group"
+        ),
+
+        status=data.get(
+            "status"
+        ),
+
+        registration_status=data.get(
+            "registration_status"
+        )
+
+    )
+
+    db.add(new_school)
+
+    db.commit()
+
+    db.refresh(new_school)
+
+    return {
+        "message": "Created successfully",
+        "data": new_school
+    }
+
+
+# =====================================
+# UPDATE
+# =====================================
+
+@app.put("/ambassador-schools/{id}")
+
+def update_ambassador_school(
+
+    id: int,
+
+    data: dict,
+
+    db: Session = Depends(get_db)
+
+):
+
+    school = db.query(
+        models.AmbassadorSchool
+    ).filter(
+
+        models.AmbassadorSchool.id == id
+
+    ).first()
+
+    if not school:
+
+        raise HTTPException(
+
+            status_code=404,
+
+            detail="School not found"
+
+        )
+
+    school.udise_code = data.get(
+        "udise_code"
+    )
+
+    school.district = data.get(
+        "district"
+    )
+
+    school.block = data.get(
+        "block"
+    )
+
+    school.school_name = data.get(
+        "school_name"
+    )
+
+    school.category_group = data.get(
+        "category_group"
+    )
+
+    school.status = data.get(
+        "status"
+    )
+
+    school.registration_status = data.get(
+        "registration_status"
+    )
+
+    db.commit()
+
+    db.refresh(school)
+
+    return {
+        "message": "Updated successfully",
+        "data": school
+    }
+
+
+# =====================================
+# DELETE
+# =====================================
+
+@app.delete("/ambassador-schools/{id}")
+
+def delete_ambassador_school(
+
+    id: int,
+
+    db: Session = Depends(get_db)
+
+):
+
+    school = db.query(
+        models.AmbassadorSchool
+    ).filter(
+
+        models.AmbassadorSchool.id == id
+
+    ).first()
+
+    if not school:
+
+        raise HTTPException(
+
+            status_code=404,
+
+            detail="School not found"
+
+        )
+
+    db.delete(school)
+
+    db.commit()
+
+    return {
+        "message": "Deleted successfully"
     }

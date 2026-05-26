@@ -71,3 +71,34 @@ class School(Base):
 
     organization_committee_formed_status = Column(String)
     
+# =====================================
+# AAMBASSADOR SCHOOLS List
+# =====================================
+
+class AmbassadorSchool(Base):
+
+    __tablename__ = "ambassador_schools"
+
+    id = Column(
+        Integer,
+        primary_key=True,
+        index=True
+    )
+
+    udise_code = Column(String)
+
+    district = Column(String)
+
+    block = Column(String)
+
+    school_name = Column(String)
+
+    category_group = Column(String)
+
+    status = Column(String)
+
+    registration_status = Column(String)
+
+# =====================================
+# 
+# =====================================
