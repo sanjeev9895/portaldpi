@@ -692,8 +692,9 @@ export default function CommunityTeam() {
             <p>Centenary celebration tracking · Tamil Nadu Schools</p>
           </div>
 
-          <div className="ct-select-wrap">
-
+              
+            <div className="ct-header-badge">
+              Year Filter
             <Filter
               size={15}
               style={{
@@ -711,6 +712,7 @@ export default function CommunityTeam() {
                 setCurrentPage(1)
               }}
             >
+              
               <option value="All">
                All Years  
               </option>
@@ -727,11 +729,9 @@ export default function CommunityTeam() {
             </select>
           </div>
 
-          <div className="ct-header-badge">
-            <span className="dot" />
-            Live Data
-          </div>
+          
         </div>
+        
 
         {/* STATS */}
         <div className="ct-stats">
