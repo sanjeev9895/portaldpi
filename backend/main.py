@@ -229,32 +229,28 @@ def delete_attendance(
 # =========================================================
 # CENTINARY CELEBRATION SCHOOL API
 # =========================================================
-
-@app.get("/schools")
-def get_schools(
+@app.get("/ambassador-schools")
+def get_ambassador_schools(
     db: Session = Depends(get_db)
 ):
 
     schools = db.query(
-        models.School
+        models.AmbassadorSchool
     ).all()
 
-    return {
-        "data":
-        schools
-    }
+    return schools
 
 # =========================================================
 # ADD SCHOOL
 # =========================================================
 
-@app.post("/schools")
-def add_school(
+@app.post("/ambassador-schools")
+def add_ambassador_school(
     data: dict,
     db: Session = Depends(get_db)
 ):
 
-    school = models.School(
+    school = models.AmbassadorSchool(
 
         district=data.get(
             "district"
@@ -309,17 +305,17 @@ def add_school(
 # UPDATE SCHOOL
 # =========================================================
 
-@app.put("/schools/{id}")
-def update_school(
+@app.put("/ambassador-schools/{id}")
+def update_ambassador_school(
     id: int,
     data: dict,
     db: Session = Depends(get_db)
 ):
 
     school = db.query(
-        models.School
+        models.AmbassadorSchool
     ).filter(
-        models.School.id == id
+        models.AmbassadorSchool.id == id
     ).first()
 
     if school:
@@ -364,16 +360,16 @@ def update_school(
 # DELETE SCHOOL
 # =========================================================
 
-@app.delete("/schools/{id}")
-def delete_school(
+@app.delete("/ambassador-schools/{id}")
+def delete_ambassador_school(
     id: int,
     db: Session = Depends(get_db)
 ):
 
     school = db.query(
-        models.School
+        models.AmbassadorSchool
     ).filter(
-        models.School.id == id
+        models.AmbassadorSchool.id == id
     ).first()
 
     if school:
@@ -386,6 +382,229 @@ def delete_school(
         "message":
         "School Deleted"
     }
+
+
+# =====================================
+# SCHOOLS CRUD API
+# =====================================
+
+# =====================================
+# GET ALL SCHOOLS
+# =====================================
+
+@app.get("/schools")
+def get_all_schools(
+    db: Session = Depends(get_db)
+):
+
+    schools = db.query(
+        models.School
+    ).all()
+
+    return {
+        "count": len(schools),
+        "data": schools
+    }
+
+
+# =====================================
+# GET SINGLE SCHOOL
+# =====================================
+
+@app.get("/schools/{id}")
+def get_single_school(
+    id: int,
+    db: Session = Depends(get_db)
+):
+
+    school = db.query(
+        models.School
+    ).filter(
+        models.School.id == id
+    ).first()
+
+    if not school:
+
+        raise HTTPException(
+            status_code=404,
+            detail="School not found"
+        )
+
+    return {
+        "data": school
+    }
+
+
+# =====================================
+# CREATE SCHOOL
+# =====================================
+
+@app.post("/schools")
+def create_school(
+    data: dict,
+    db: Session = Depends(get_db)
+):
+
+    new_school = models.School(
+
+        district=data.get(
+            "district"
+        ),
+
+        block_name=data.get(
+            "block_name"
+        ),
+
+        udise_code=data.get(
+            "udise_code"
+        ),
+
+        school_name=data.get(
+            "school_name"
+        ),
+
+        school_category=data.get(
+            "school_category"
+        ),
+
+        management_category=data.get(
+            "management_category"
+        ),
+
+        centenary_celebration_status=data.get(
+            "centenary_celebration_status"
+        ),
+
+        celebration_date=data.get(
+            "celebration_date"
+        ),
+
+        preparatory_meeting_conducted_status=data.get(
+            "preparatory_meeting_conducted_status"
+        ),
+
+        organization_committee_formed_status=data.get(
+            "organization_committee_formed_status"
+        )
+    )
+
+    db.add(new_school)
+
+    db.commit()
+
+    db.refresh(new_school)
+
+    return {
+        "message": "School created successfully",
+        "data": new_school
+    }
+
+
+# =====================================
+# UPDATE SCHOOL
+# =====================================
+
+@app.put("/schools/{id}")
+def update_school(
+    id: int,
+    data: dict,
+    db: Session = Depends(get_db)
+):
+
+    school = db.query(
+        models.School
+    ).filter(
+        models.School.id == id
+    ).first()
+
+    if not school:
+
+        raise HTTPException(
+            status_code=404,
+            detail="School not found"
+        )
+
+    school.district = data.get(
+        "district"
+    )
+
+    school.block_name = data.get(
+        "block_name"
+    )
+
+    school.udise_code = data.get(
+        "udise_code"
+    )
+
+    school.school_name = data.get(
+        "school_name"
+    )
+
+    school.school_category = data.get(
+        "school_category"
+    )
+
+    school.management_category = data.get(
+        "management_category"
+    )
+
+    school.centenary_celebration_status = data.get(
+        "centenary_celebration_status"
+    )
+
+    school.celebration_date = data.get(
+        "celebration_date"
+    )
+
+    school.preparatory_meeting_conducted_status = data.get(
+        "preparatory_meeting_conducted_status"
+    )
+
+    school.organization_committee_formed_status = data.get(
+        "organization_committee_formed_status"
+    )
+
+    db.commit()
+
+    db.refresh(school)
+
+    return {
+        "message": "School updated successfully",
+        "data": school
+    }
+
+
+# =====================================
+# DELETE SCHOOL
+# =====================================
+
+@app.delete("/schools/{id}")
+def delete_school(
+    id: int,
+    db: Session = Depends(get_db)
+):
+
+    school = db.query(
+        models.School
+    ).filter(
+        models.School.id == id
+    ).first()
+
+    if not school:
+
+        raise HTTPException(
+            status_code=404,
+            detail="School not found"
+        )
+
+    db.delete(school)
+
+    db.commit()
+
+    return {
+        "message": "School deleted successfully"
+    }
+
 
 # =====================================
 # GET ALL
