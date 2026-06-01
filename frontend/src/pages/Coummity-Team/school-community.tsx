@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Search, Plus, Eye, Pencil, Trash2, X, Users, School, CheckCircle, XCircle, Upload, ChevronRight } from "lucide-react";
 
 // BackButton stub for standalone use
