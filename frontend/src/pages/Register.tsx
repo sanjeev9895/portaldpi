@@ -19,26 +19,28 @@ export default function Register() {
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [role, setRole] = useState('employee');
 
   const [showPassword, setShowPassword] = useState(false);
 
   const handleRegister = () => {
-
     if (
       name &&
       phone &&
       email &&
       password
     ) {
-
+      const registeredUsers = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
+      if (registeredUsers.some((u: any) => u.email === email)) {
+        alert('Email is already registered!');
+        return;
+      }
+      registeredUsers.push({ name, phone, email, password, role });
+      localStorage.setItem('registeredUsers', JSON.stringify(registeredUsers));
       alert('Registration Successful');
-
       navigate('/login');
-
     } else {
-
       alert('Please fill all fields');
-
     }
   };
 
@@ -180,6 +182,24 @@ export default function Register() {
 
           </div>
 
+        </div>
+
+        {/* Role Selection */}
+        <div className="mb-5">
+          <label className="block text-sm font-semibold text-slate-700 mb-2">
+            Select Role
+          </label>
+          <div className="relative">
+            <select
+              value={role}
+              onChange={(e) => setRole(e.target.value)}
+              className="w-full border border-slate-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 outline-none px-4 py-3 rounded-2xl transition-all bg-white font-medium text-slate-700 cursor-pointer"
+            >
+              <option value="employee">Employee</option>
+              <option value="manager">Manager</option>
+              <option value="admin">Admin</option>
+            </select>
+          </div>
         </div>
 
         {/* Password */}

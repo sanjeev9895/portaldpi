@@ -18,39 +18,44 @@ import BackButton from '../components/BackButton'
 
 export default function ProfileSettings() {
 
-  const [isEditing, setIsEditing] =
-    useState(false)
+  const [isEditing, setIsEditing] = useState(false)
+  const [profileImage, setProfileImage] = useState<string | null>(null)
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [currentUser, setCurrentUser] = useState<any>(null)
 
-  const [profileImage, setProfileImage] =
-    useState<string | null>(null)
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    role: '',
+    department: '',
+    location: '',
+    password: '',
+    confirmPassword: '',
+  })
 
-  const [showPassword, setShowPassword] =
-    useState(false)
-
-  const [
-    showConfirmPassword,
-    setShowConfirmPassword,
-  ] = useState(false)
-
-  const [formData, setFormData] =
-    useState({
-
-      name: '',
-
-      email: '',
-
-      phone: '',
-
-      role: '',
-
-      department: '',
-
-      location: '',
-
-      password: '',
-
-      confirmPassword: '',
-    })
+  useState(() => {
+    const userStr = localStorage.getItem('user')
+    if (userStr) {
+      try {
+        const uObj = JSON.parse(userStr)
+        setCurrentUser(uObj)
+        setFormData({
+          name: uObj.name || '',
+          email: uObj.email || '',
+          phone: uObj.phone || '9876543210',
+          role: uObj.role || 'employee',
+          department: uObj.department || 'Alumni Connect',
+          location: uObj.location || 'Madurai',
+          password: '',
+          confirmPassword: '',
+        })
+      } catch (e) {
+        console.error(e)
+      }
+    }
+  })
 
   const handleImageUpload = (
     e: React.ChangeEvent<HTMLInputElement>
@@ -180,7 +185,7 @@ export default function ProfileSettings() {
 
         {
 
-          !isEditing && (
+          !isEditing && currentUser?.role !== 'employee' && (
 
             <button
 
@@ -274,17 +279,142 @@ export default function ProfileSettings() {
 
             <h2 className="text-2xl font-bold text-slate-800">
 
-              State Admin
+              {currentUser ? currentUser.name : 'User Profile'}
 
             </h2>
 
             <p className="text-slate-500 mt-1">
 
-              Alumni Connect
+              Role: {currentUser ? currentUser.role?.toUpperCase() : ''}
 
             </p>
 
           </div>
+
+          {/* ===================================== */}
+          {/* DYNAMIC PRIVILEGES & ACCESS LEVELS */}
+          {/* ===================================== */}
+          {currentUser?.role === 'admin' && (
+            <div className="mb-12 bg-gradient-to-br from-indigo-50 via-purple-50 to-blue-50 rounded-3xl p-8 border border-indigo-100/80 shadow-md">
+              <div className="flex items-center gap-4 mb-4">
+                <div className="bg-indigo-600 text-white p-3 rounded-2xl shadow-md shadow-indigo-100">
+                  <Shield size={24} />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-slate-800">State Admin Privileges</h3>
+                  <p className="text-indigo-600 text-xs font-bold uppercase tracking-wider">Status: ACTIVE (State level clearance)</p>
+                </div>
+              </div>
+              <p className="text-slate-600 text-sm leading-relaxed mb-6">
+                You have state administrator clearance. You have full edit/delete privileges across all state metrics, reports, and attendance registers.
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="flex items-center gap-3 bg-white px-5 py-3 rounded-2xl border border-slate-200/80 hover:shadow-md transition">
+                  <span className="w-2.5 h-2.5 rounded-full bg-indigo-500"></span>
+                  <span className="text-xs text-slate-600 font-semibold">Manage Employee Accounts</span>
+                </div>
+                <div className="flex items-center gap-3 bg-white px-5 py-3 rounded-2xl border border-slate-200/80 hover:shadow-md transition">
+                  <span className="w-2.5 h-2.5 rounded-full bg-indigo-500"></span>
+                  <span className="text-xs text-slate-600 font-semibold">Full CRUD Database Privileges</span>
+                </div>
+                <div className="flex items-center gap-3 bg-white px-5 py-3 rounded-2xl border border-slate-200/80 hover:shadow-md transition">
+                  <span className="w-2.5 h-2.5 rounded-full bg-indigo-500"></span>
+                  <span className="text-xs text-slate-600 font-semibold">Export System Reports & Analytics</span>
+                </div>
+                <div className="flex items-center gap-3 bg-white px-5 py-3 rounded-2xl border border-slate-200/80 hover:shadow-md transition">
+                  <span className="w-2.5 h-2.5 rounded-full bg-indigo-500"></span>
+                  <span className="text-xs text-slate-600 font-semibold">State Level Audit Control</span>
+                </div>
+              </div>
+              <div className="mt-8 pt-6 border-t border-slate-200/60">
+                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">Administrative Settings (Simulated)</h4>
+                <div className="flex flex-wrap gap-6">
+                  <label className="flex items-center gap-3 cursor-pointer group">
+                    <input type="checkbox" defaultChecked className="w-4 h-4 text-indigo-600 border-slate-300 rounded focus:ring-indigo-500 transition group-hover:scale-105" />
+                    <span className="text-sm text-slate-600 font-semibold">Allow New Registration</span>
+                  </label>
+                  <label className="flex items-center gap-3 cursor-pointer group">
+                    <input type="checkbox" defaultChecked className="w-4 h-4 text-indigo-600 border-slate-300 rounded focus:ring-indigo-500 transition group-hover:scale-105" />
+                    <span className="text-sm text-slate-600 font-semibold">Maintenance Alerts</span>
+                  </label>
+                  <label className="flex items-center gap-3 cursor-pointer group">
+                    <input type="checkbox" className="w-4 h-4 text-indigo-600 border-slate-300 rounded focus:ring-indigo-500 transition group-hover:scale-105" />
+                    <span className="text-sm text-slate-600 font-semibold">Read-Only Mode for State Users</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {currentUser?.role === 'manager' && (
+            <div className="mb-12 bg-gradient-to-br from-blue-50 via-indigo-50 to-emerald-50 rounded-3xl p-8 border border-blue-100/80 shadow-md">
+              <div className="flex items-center gap-4 mb-4">
+                <div className="bg-blue-600 text-white p-3 rounded-2xl shadow-md shadow-blue-100">
+                  <Shield size={24} />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-slate-800">Manager Privileges</h3>
+                  <p className="text-blue-600 text-xs font-bold uppercase tracking-wider">Status: ACTIVE (Manager level clearance)</p>
+                </div>
+              </div>
+              <p className="text-slate-600 text-sm leading-relaxed mb-6">
+                You are logged in with Manager access. You have full edit/delete privileges on school level metrics, core team formations, and engagements.
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="flex items-center gap-3 bg-white px-5 py-3 rounded-2xl border border-slate-200/80 hover:shadow-md transition">
+                  <span className="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
+                  <span className="text-xs text-slate-600 font-semibold">Full KPI Data Management</span>
+                </div>
+                <div className="flex items-center gap-3 bg-white px-5 py-3 rounded-2xl border border-slate-200/80 hover:shadow-md transition">
+                  <span className="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
+                  <span className="text-xs text-slate-600 font-semibold">View Employees Registry</span>
+                </div>
+                <div className="flex items-center gap-3 bg-white px-5 py-3 rounded-2xl border border-slate-200/80 hover:shadow-md transition">
+                  <span className="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
+                  <span className="text-xs text-slate-600 font-semibold">Manage Attendance Registers</span>
+                </div>
+                <div className="flex items-center gap-3 bg-white px-5 py-3 rounded-2xl border border-slate-200/80 opacity-60">
+                  <span className="w-2.5 h-2.5 rounded-full bg-slate-400"></span>
+                  <span className="text-xs text-slate-500 font-semibold">System Configuration (Restricted)</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {currentUser?.role === 'employee' && (
+            <div className="mb-12 bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50 rounded-3xl p-8 border border-amber-100/80 shadow-md animate-fade-in">
+              <div className="flex items-center gap-4 mb-4">
+                <div className="bg-amber-600 text-white p-3 rounded-2xl shadow-md shadow-amber-100">
+                  <Shield size={24} className="animate-pulse" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-slate-800">Employee Privilege Level</h3>
+                  <p className="text-amber-700 text-xs font-bold uppercase tracking-wider">Status: VIEW ONLY (Read-Only)</p>
+                </div>
+              </div>
+              <p className="text-slate-600 text-sm leading-relaxed mb-6">
+                You are logged in with standard Employee privileges. To preserve data integrity across the state, you cannot create, edit, or delete metrics.
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="flex items-center gap-3 bg-white px-5 py-3 rounded-2xl border border-slate-200/80 hover:shadow-md transition">
+                  <span className="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+                  <span className="text-xs text-slate-600 font-semibold">View Dashboard & Statistics</span>
+                </div>
+                <div className="flex items-center gap-3 bg-white px-5 py-3 rounded-2xl border border-slate-200/80 hover:shadow-md transition">
+                  <span className="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+                  <span className="text-xs text-slate-600 font-semibold">Browse All KPIs & Reports</span>
+                </div>
+                <div className="flex items-center gap-3 bg-white px-5 py-3 rounded-2xl border border-slate-200/80 opacity-60">
+                  <span className="w-2.5 h-2.5 rounded-full bg-rose-500"></span>
+                  <span className="text-xs text-slate-400 font-semibold line-through">Edit / Delete KPI Records</span>
+                </div>
+                <div className="flex items-center gap-3 bg-white px-5 py-3 rounded-2xl border border-slate-200/80 opacity-60">
+                  <span className="w-2.5 h-2.5 rounded-full bg-rose-500"></span>
+                  <span className="text-xs text-slate-400 font-semibold line-through">Add New KPI entries</span>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Personal Info */}
 

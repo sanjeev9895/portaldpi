@@ -58,44 +58,48 @@ const handleLogin = () => {
   // STATIC LOGIN
   // =====================================
 
-  if (
+  let loggedInUser = null;
 
-    email ===
-      'resource@gmail.com' &&
-
-    password ===
-      'resource1'
-
+  if (email === 'admin@gmail.com' && password === 'admin1') {
+    loggedInUser = {
+      name: 'State Admin',
+      email: 'admin@gmail.com',
+      role: 'admin',
+    };
+  } else if (
+    (email === 'manager@gmail.com' && password === 'manager1') ||
+    (email === 'resource@gmail.com' && password === 'resource1')
   ) {
-
-    localStorage.setItem(
-
-      'user',
-
-      JSON.stringify({
-
-        name: 'Resource',
-
-        email:
-          'resource@gmail.com',
-
-        role: 'manager',
-
-      })
-
-    )
-
-    alert(
-      'Login Successful'
-    )
-
-    navigate('/dashboard')
-
+    loggedInUser = {
+      name: 'Manager User',
+      email: email,
+      role: 'manager',
+    };
+  } else if (email === 'employee@gmail.com' && password === 'employee1') {
+    loggedInUser = {
+      name: 'Employee User',
+      email: 'employee@gmail.com',
+      role: 'employee',
+    };
   } else {
+    // Check registered users in localStorage
+    const registeredUsers = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
+    const matched = registeredUsers.find((u: any) => u.email === email && u.password === password);
+    if (matched) {
+      loggedInUser = {
+        name: matched.name,
+        email: matched.email,
+        role: matched.role || 'employee',
+      };
+    }
+  }
 
-    alert(
-      'Invalid Email or Password'
-    )
+  if (loggedInUser) {
+    localStorage.setItem('user', JSON.stringify(loggedInUser));
+    alert('Login Successful');
+    navigate('/dashboard');
+  } else {
+    alert('Invalid Email or Password');
   }
 }
 

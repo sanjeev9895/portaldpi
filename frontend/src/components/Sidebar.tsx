@@ -49,10 +49,26 @@ export default function Sidebar({
   const [openMenu, setOpenMenu] =
     useState<string | null>(null);
 
+  const [userRole, setUserRole] = useState<string>('employee');
+
+  // Load user role from localStorage
+  useEffect(() => {
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      try {
+        const userObj = JSON.parse(userStr);
+        setUserRole(userObj.role || 'employee');
+      } catch (e) {
+        console.error(e);
+      }
+    }
+  }, []);
+
   // Logout
 
   const handleLogout = () => {
 
+    localStorage.removeItem('user');
     navigate('/login');
   };
 
@@ -121,6 +137,14 @@ export default function Sidebar({
       path: '/settings',
     },
   ];
+
+  // Filter menu items based on role
+  const filteredMenuItems = menuItems.filter(item => {
+    if (userRole === 'employee') {
+      return item.title !== 'Employees' && item.title !== 'Attendance';
+    }
+    return true;
+  });
 
   return (
 
@@ -209,7 +233,7 @@ export default function Sidebar({
 
               <p className="text-blue-200 text-xs uppercase mb-4 tracking-[3px] font-semibold">
 
-                Admin Panel
+                {userRole === 'admin' ? 'Admin Panel' : userRole === 'manager' ? 'Manager Panel' : 'Employee Panel'}
 
               </p>
             )
@@ -219,7 +243,7 @@ export default function Sidebar({
 
             {
 
-              menuItems.map((item, index) => {
+              filteredMenuItems.map((item, index) => {
 
                 const active =
                   location.pathname ===

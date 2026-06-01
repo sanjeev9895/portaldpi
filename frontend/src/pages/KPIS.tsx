@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 import {
   FileText,
@@ -52,6 +52,18 @@ export default function KPIS() {
   ]);
 
   const [search, setSearch] = useState('');
+  const [currentUser, setCurrentUser] = useState<any>(null);
+
+  useEffect(() => {
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      try {
+        setCurrentUser(JSON.parse(userStr));
+      } catch (e) {
+        console.error(e);
+      }
+    }
+  }, []);
 
   // Status Filter
   const [status, setStatus] = useState('All Reports');
@@ -247,27 +259,29 @@ export default function KPIS() {
   
 </style>
 
-          <button
-            onClick={() => {
+          {currentUser?.role !== 'employee' && (
+            <button
+              onClick={() => {
 
-              setOpen(true);
+                setOpen(true);
 
-              setIsEdit(false);
+                setIsEdit(false);
 
-              setTitle('');
-              setCategory('');
-              setEmployee('');
-              setDate('');
+                setTitle('');
+                setCategory('');
+                setEmployee('');
+                setDate('');
 
-            }}
-            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-2xl shadow-sm transition"
-          >
+              }}
+              className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-2xl shadow-sm transition"
+            >
 
-            <Plus size={20} />
+              <Plus size={20} />
 
-            Create Report
+              Create Report
 
-          </button>
+            </button>
+          )}
 
         </div>
 
@@ -510,25 +524,29 @@ export default function KPIS() {
 
                 </button>
 
-                {/* Edit */}
-                <button
-                  onClick={() => handleEdit(report)}
-                  className="p-2 rounded-xl bg-blue-100 hover:bg-blue-200 text-blue-600 transition"
-                >
+                {currentUser?.role !== 'employee' && (
+                  <>
+                    {/* Edit */}
+                    <button
+                      onClick={() => handleEdit(report)}
+                      className="p-2 rounded-xl bg-blue-100 hover:bg-blue-200 text-blue-600 transition"
+                    >
 
-                  <Pencil size={18} />
+                      <Pencil size={18} />
 
-                </button>
+                    </button>
 
-                {/* Delete */}
-                <button
-                  onClick={() => confirmDelete(report.id)}
-                  className="p-2 rounded-xl bg-red-100 hover:bg-red-200 text-red-600 transition"
-                >
+                    {/* Delete */}
+                    <button
+                      onClick={() => confirmDelete(report.id)}
+                      className="p-2 rounded-xl bg-red-100 hover:bg-red-200 text-red-600 transition"
+                    >
 
-                  <Trash2 size={18} />
+                      <Trash2 size={18} />
 
-                </button>
+                    </button>
+                  </>
+                )}
 
               </div>
 

@@ -5,6 +5,10 @@ import {
   Clock3,
   TrendingUp,
   Activity,
+  School,
+  MessageSquare,
+  CheckCircle,
+  XCircle,
 } from 'lucide-react'
 
 import {
@@ -27,24 +31,78 @@ import {
 
 export default function Dashboard() {
 
-  /* ===================================== */
-  /* STATES */
-  /* ===================================== */
+  const [employees, setEmployees] = useState<any[]>([])
+  const [loading, setLoading] = useState(false)
+  const [currentUser, setCurrentUser] = useState<any>(null)
+  const [kpis, setKpis] = useState({
+    schoolCommunities: 3,
+    coreTeams: 3,
+    whatsappGroups: 3,
+    coreEngagements: 3
+  })
+  const [schoolCommunitiesList, setSchoolCommunitiesList] = useState<any[]>([])
 
-  const [employees, setEmployees] =
-    useState<any[]>([])
-
-  const [loading, setLoading] =
-    useState(false)
-
   /* ===================================== */
-  /* FETCH EMPLOYEES */
+  /* FETCH EMPLOYEES & KPIS */
   /* ===================================== */
 
   useEffect(() => {
-
     fetchEmployees()
 
+    // Load logged-in user
+    const userStr = localStorage.getItem('user')
+    if (userStr) {
+      try {
+        setCurrentUser(JSON.parse(userStr))
+      } catch (e) {
+        console.error(e)
+      }
+    }
+
+    // Load KPI counts from localStorage
+    const schools = JSON.parse(localStorage.getItem('school_communities') || '[]')
+    const teams = JSON.parse(localStorage.getItem('core_teams') || '[]')
+    const whatsapp = JSON.parse(localStorage.getItem('whatsapp_groups') || '[]')
+    const engagements = JSON.parse(localStorage.getItem('core_engagements') || '[]')
+
+    const defaultSchools = [
+      {
+        id: 1,
+        school_name: "Govt Hr Sec School",
+        whatsapp_group: "GHSS Alumni 2025",
+        mobilization: "Yes",
+        members: 650,
+        platform: "WhatsApp",
+        remarks: "Active community",
+      },
+      {
+        id: 2,
+        school_name: "St. Joseph's Hr Sec School",
+        whatsapp_group: "SJS Alumni Network",
+        mobilization: "Yes",
+        members: 820,
+        platform: "Telegram",
+        remarks: "Recently formed",
+      },
+      {
+        id: 3,
+        school_name: "Anna Matriculation School",
+        whatsapp_group: "Anna Matric Old Boys",
+        mobilization: "No",
+        members: 510,
+        platform: "Facebook",
+        remarks: "Pending verification",
+      }
+    ]
+
+    setKpis({
+      schoolCommunities: schools.length > 0 ? schools.length : 3,
+      coreTeams: teams.length > 0 ? teams.length : 3,
+      whatsappGroups: whatsapp.length > 0 ? whatsapp.length : 3,
+      coreEngagements: engagements.length > 0 ? engagements.length : 3,
+    })
+
+    setSchoolCommunitiesList(schools.length > 0 ? schools : defaultSchools)
   }, [])
 
   const fetchEmployees = async () => {
@@ -210,7 +268,7 @@ export default function Dashboard() {
 
           <p className="text-slate-500 mt-1">
 
-            Welcome back, State Admin 👋
+            Welcome back, {currentUser ? currentUser.name : 'User'} 👋
 
           </p>
 
@@ -296,6 +354,60 @@ export default function Dashboard() {
 
         ))}
 
+      </div>
+
+      {/* ===================================== */}
+      {/* ALUMNI COMMUNITY KPIS */}
+      {/* ===================================== */}
+      <div>
+        <h2 className="text-2xl font-bold text-slate-800 mb-4">Alumni Community KPIs</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
+          {[
+            {
+              title: "School Communities",
+              value: kpis.schoolCommunities,
+              icon: <School size={28} />,
+              bg: "bg-blue-100",
+              text: "text-blue-600",
+            },
+            {
+              title: "Core Teams Formed",
+              value: kpis.coreTeams,
+              icon: <Users size={28} />,
+              bg: "bg-violet-100",
+              text: "text-violet-600",
+            },
+            {
+              title: "WhatsApp Groups",
+              value: kpis.whatsappGroups,
+              icon: <MessageSquare size={28} />,
+              bg: "bg-green-100",
+              text: "text-green-600",
+            },
+            {
+              title: "Core Engagements",
+              value: kpis.coreEngagements,
+              icon: <Activity size={28} />,
+              bg: "bg-emerald-100",
+              text: "text-emerald-600",
+            },
+          ].map((item, index) => (
+            <div
+              key={index}
+              className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 hover:shadow-xl transition-all duration-300"
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-slate-500 text-sm mb-2">{item.title}</p>
+                  <h2 className="text-4xl font-bold text-slate-800">{item.value}</h2>
+                </div>
+                <div className={`${item.bg} ${item.text} p-4 rounded-2xl`}>
+                  {item.icon}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* ===================================== */}
@@ -453,6 +565,134 @@ export default function Dashboard() {
             </ResponsiveContainer>
 
           </div>
+
+        </div>
+
+      </div>
+
+      {/* ===================================== */}
+      {/* SCHOOL LEVEL ALUMNI COMMUNITIES (KP1) */}
+      {/* ===================================== */}
+
+      <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-200">
+
+        <div className="flex items-center justify-between mb-6">
+
+          <div>
+
+            <h2 className="text-2xl font-bold text-slate-800">
+
+              School Level Alumni Communities (KP1)
+
+            </h2>
+
+            <p className="text-slate-500 mt-1 text-sm">
+
+              Formed alumni networks, group sizes, and platform active status
+
+            </p>
+
+          </div>
+
+        </div>
+
+        <div className="overflow-x-auto">
+
+          <table className="w-full">
+
+            <thead>
+
+              <tr className="border-b border-slate-200 text-left">
+
+                <th className="py-4 text-slate-600 font-semibold text-sm">School Name</th>
+
+                <th className="py-4 text-slate-600 font-semibold text-sm">WhatsApp Group</th>
+
+                <th className="py-4 text-slate-600 font-semibold text-sm">Mobilization</th>
+
+                <th className="py-4 text-slate-600 font-semibold text-sm">Members</th>
+
+                <th className="py-4 text-slate-600 font-semibold text-sm">Platform</th>
+
+                <th className="py-4 text-slate-600 font-semibold text-sm">Remarks</th>
+
+              </tr>
+
+            </thead>
+
+            <tbody>
+
+              {schoolCommunitiesList.map((item, index) => (
+
+                <tr
+
+                  key={item.id || index}
+
+                  className="border-b border-slate-100 hover:bg-slate-50 transition-all"
+
+                >
+
+                  <td className="py-5 font-semibold text-slate-800">
+
+                    {item.school_name}
+
+                  </td>
+
+                  <td className="py-5 text-slate-600">
+
+                    {item.whatsapp_group || <span className="text-slate-300">—</span>}
+
+                  </td>
+
+                  <td className="py-5">
+
+                    <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${
+
+                      item.mobilization === "Yes"
+
+                        ? "bg-emerald-50 text-emerald-700"
+
+                        : "bg-red-50 text-red-600"
+
+                    }`}>
+
+                      {item.mobilization === "Yes" ? <CheckCircle size={12} /> : <XCircle size={12} />}
+
+                      {item.mobilization}
+
+                    </span>
+
+                  </td>
+
+                  <td className="py-5">
+
+                    <span className="bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-xs font-bold">
+
+                      {Number(item.members).toLocaleString()}+
+
+                    </span>
+
+                  </td>
+
+                  <td className="py-5 text-slate-600">
+
+                    {item.platform || <span className="text-slate-300">—</span>}
+
+                  </td>
+
+                  <td className="py-5 text-slate-500 max-w-[200px] truncate" title={item.remarks}>
+
+                    {item.remarks || <span className="text-slate-300">—</span>}
+
+                  </td>
+
+                </tr>
+
+              ))}
+
+            </tbody>
+
+          </table>
 
         </div>
 

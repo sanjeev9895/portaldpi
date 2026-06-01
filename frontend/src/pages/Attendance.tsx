@@ -22,32 +22,27 @@ export default function Attendance() {
   // STATES
   // =====================================
 
-  const [attendance, setAttendance] =
-    useState<any[]>([])
+  const [attendance, setAttendance] = useState<any[]>([])
+  const [search, setSearch] = useState('')
+  const [selectedDate, setSelectedDate] = useState('')
+  const [showModal, setShowModal] = useState(false)
+  const [editId, setEditId] = useState<number | null>(null)
+  const [employeeName, setEmployeeName] = useState('')
+  const [checkInTime, setCheckInTime] = useState('')
+  const [checkOutTime, setCheckOutTime] = useState('')
+  const [workDone, setWorkDone] = useState('')
+  const [currentUser, setCurrentUser] = useState<any>(null)
 
-  const [search, setSearch] =
-    useState('')
-
-  const [selectedDate, setSelectedDate] =
-    useState('')
-
-  const [showModal, setShowModal] =
-    useState(false)
-
-  const [editId, setEditId] =
-    useState<number | null>(null)
-
-  const [employeeName, setEmployeeName] =
-    useState('')
-
-  const [checkInTime, setCheckInTime] =
-    useState('')
-
-  const [checkOutTime, setCheckOutTime] =
-    useState('')
-
-  const [workDone, setWorkDone] =
-    useState('')
+  useEffect(() => {
+    const userStr = localStorage.getItem('user')
+    if (userStr) {
+      try {
+        setCurrentUser(JSON.parse(userStr))
+      } catch (e) {
+        console.error(e)
+      }
+    }
+  }, [])
 
   // =====================================
   // FETCH ATTENDANCE
@@ -491,6 +486,7 @@ export default function Attendance() {
 {/* ADD BUTTON */}
 {/* ===================================== */}
 
+{currentUser?.role !== 'employee' && (
 <div className="flex justify-end mb-6">
 
   <button
@@ -520,6 +516,7 @@ export default function Attendance() {
   </button>
 
 </div>
+)}
 
       {/* ===================================== */}
       {/* TABLE */}
@@ -658,41 +655,45 @@ export default function Attendance() {
 
                         <td className="p-5">
 
-                          <div className="flex gap-3">
+                          {currentUser?.role !== 'employee' ? (
+                            <div className="flex gap-3">
 
-                            {/* Edit */}
+                              {/* Edit */}
 
-                            <button
-                              onClick={() =>
-                                handleEdit(item)
-                              }
-                              className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center"
-                            >
+                              <button
+                                onClick={() =>
+                                  handleEdit(item)
+                                }
+                                className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center"
+                              >
 
-                              <Pencil
-                                size={18}
-                                className="text-blue-600"
-                              />
+                                <Pencil
+                                  size={18}
+                                  className="text-blue-600"
+                                />
 
-                            </button>
+                              </button>
 
-                            {/* Delete */}
+                              {/* Delete */}
 
-                            <button
-                              onClick={() =>
-                                handleDelete(item.id)
-                              }
-                              className="w-10 h-10 rounded-xl bg-red-100 flex items-center justify-center"
-                            >
+                              <button
+                                onClick={() =>
+                                  handleDelete(item.id)
+                                }
+                                className="w-10 h-10 rounded-xl bg-red-100 flex items-center justify-center"
+                              >
 
-                              <Trash2
-                                size={18}
-                                className="text-red-600"
-                              />
+                                <Trash2
+                                  size={18}
+                                  className="text-red-600"
+                                />
 
-                            </button>
+                              </button>
 
-                          </div>
+                            </div>
+                          ) : (
+                            <span className="text-slate-400 text-xs font-semibold">View Only</span>
+                          )}
 
                         </td>
 

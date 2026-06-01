@@ -18,7 +18,6 @@ import {
   ChevronDown,
   UserCheck,
   Calendar,
-  Phone,
 } from 'lucide-react'
 
 import api from '../services/api'
@@ -373,6 +372,18 @@ export default function Employees() {
   const [employees, setEmployees] = useState<any[]>([])
   const [search, setSearch] = useState('')
   const [filterRole, setFilterRole] = useState('All')
+  const [currentUser, setCurrentUser] = useState<any>(null)
+
+  useEffect(() => {
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      try {
+        setCurrentUser(JSON.parse(userStr));
+      } catch (e) {
+        console.error(e);
+      }
+    }
+  }, []);
 
   /* Modal states */
   const [showModal, setShowModal] = useState(false)
@@ -603,6 +614,14 @@ export default function Employees() {
 
   const filteredEmployees = useMemo(() => {
     return employees.filter((item: any) => {
+      // If manager, filter out managers and admins
+      if (currentUser?.role === 'manager') {
+        const itemRole = item.role?.toLowerCase() || '';
+        const itemEmail = item.email?.toLowerCase() || '';
+        if (itemRole === 'admin' || itemRole === 'manager' || itemEmail === 'admin@gmail.com' || itemEmail === 'manager@gmail.com') {
+          return false;
+        }
+      }
       const matchesSearch =
         item.name?.toLowerCase().includes(search.toLowerCase()) ||
         item.email?.toLowerCase().includes(search.toLowerCase()) ||
@@ -611,7 +630,7 @@ export default function Employees() {
         filterRole === 'All' ? true : item.role === filterRole
       return matchesSearch && matchesRole
     })
-  }, [employees, search, filterRole])
+  }, [employees, search, filterRole, currentUser])
 
   /* ===================================== */
   /* STATS */
@@ -625,6 +644,23 @@ export default function Employees() {
   /* ===================================== */
   /* RENDER */
   /* ===================================== */
+
+  if (currentUser && currentUser.role === 'employee') {
+    return (
+      <div className="min-h-screen bg-slate-50 p-8 flex items-center justify-center">
+        <div className="bg-white rounded-[24px] shadow-lg p-10 max-w-md w-full text-center border border-slate-200">
+          <h1 className="text-3xl font-black text-slate-800 mb-2">Access Denied</h1>
+          <p className="text-slate-500 mb-6">Employees are not permitted to manage other employees.</p>
+          <button
+            onClick={() => window.location.href = '/dashboard'}
+            className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold px-6 py-2.5 rounded-xl shadow-md transition-all"
+          >
+            Go to Dashboard
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 p-6">

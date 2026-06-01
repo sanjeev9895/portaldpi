@@ -1,17 +1,7 @@
-import { useState, type ReactNode } from "react";
-import { Search, Plus, Eye, Pencil, Trash2, X, Users, School, CheckCircle, XCircle, Upload, ChevronRight } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Search, Plus, Eye, Pencil, Trash2, X, Users, School, CheckCircle, XCircle, Upload } from "lucide-react";
 
-// BackButton stub for standalone use
-function BackButton() {
-  return (
-    <button className="flex items-center gap-2 text-sm font-medium text-slate-500 hover:text-slate-800 transition-colors">
-      <ChevronRight size={16} className="rotate-180" />
-      Back
-    </button>
-  );
-}
-
-type Record = {
+type SchoolCommunityRecord = {
   id: number;
   school_name: string;
   whatsapp_group: string;
@@ -46,41 +36,69 @@ export default function SchoolCommunity() {
   const [search, setSearch] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
-  const [viewItem, setViewItem] = useState<Record | null>(null);
+  const [viewItem, setViewItem] = useState<SchoolCommunityRecord | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
+  const [currentUser, setCurrentUser] = useState<any>(null);
 
-  const [data, setData] = useState<Record[]>([
-    {
-      id: 1,
-      school_name: "Govt Hr Sec School",
-      whatsapp_group: "GHSS Alumni 2025",
-      mobilization: "Yes",
-      members: 650,
-      proof: "https://via.placeholder.com/150",
-      platform: "WhatsApp",
-      remarks: "Active community",
-    },
-    {
-      id: 2,
-      school_name: "St. Joseph's Hr Sec School",
-      whatsapp_group: "SJS Alumni Network",
-      mobilization: "Yes",
-      members: 820,
-      proof: null,
-      platform: "Telegram",
-      remarks: "Recently formed",
-    },
-    {
-      id: 3,
-      school_name: "Anna Matriculation School",
-      whatsapp_group: "Anna Matric Old Boys",
-      mobilization: "No",
-      members: 510,
-      proof: null,
-      platform: "Facebook",
-      remarks: "Pending verification",
-    },
-  ]);
+  useState(() => {
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      try {
+        setCurrentUser(JSON.parse(userStr));
+      } catch (e) {
+        console.error(e);
+      }
+    }
+  });
+
+  const [data, setData] = useState<SchoolCommunityRecord[]>(() => {
+    const saved = localStorage.getItem('school_communities');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    const defaultData = [
+      {
+        id: 1,
+        school_name: "Govt Hr Sec School",
+        whatsapp_group: "GHSS Alumni 2025",
+        mobilization: "Yes",
+        members: 650,
+        proof: "https://via.placeholder.com/150",
+        platform: "WhatsApp",
+        remarks: "Active community",
+      },
+      {
+        id: 2,
+        school_name: "St. Joseph's Hr Sec School",
+        whatsapp_group: "SJS Alumni Network",
+        mobilization: "Yes",
+        members: 820,
+        proof: null,
+        platform: "Telegram",
+        remarks: "Recently formed",
+      },
+      {
+        id: 3,
+        school_name: "Anna Matriculation School",
+        whatsapp_group: "Anna Matric Old Boys",
+        mobilization: "No",
+        members: 510,
+        proof: null,
+        platform: "Facebook",
+        remarks: "Pending verification",
+      },
+    ];
+    localStorage.setItem('school_communities', JSON.stringify(defaultData));
+    return defaultData;
+  });
+
+  useEffect(() => {
+    localStorage.setItem('school_communities', JSON.stringify(data));
+  }, [data]);
 
   const [formData, setFormData] = useState<FormData>(EMPTY_FORM);
   const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({});
@@ -102,7 +120,7 @@ export default function SchoolCommunity() {
     setShowModal(true);
   };
 
-  const openEdit = (item: Record) => {
+  const openEdit = (item: SchoolCommunityRecord) => {
     setFormData({
       school_name: item.school_name,
       whatsapp_group: item.whatsapp_group,
@@ -182,13 +200,15 @@ export default function SchoolCommunity() {
             <span className="font-semibold text-slate-800 text-sm">School Community</span>
           </div>
         </div>
-        <button
-          onClick={openAdd}
-          className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition-all shadow-sm shadow-blue-200"
-        >
-          <Plus size={16} />
-          Add School Community
-        </button>
+        {currentUser?.role !== 'employee' && (
+          <button
+            onClick={openAdd}
+            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition-all shadow-sm shadow-blue-200"
+          >
+            <Plus size={16} />
+            Add School Community
+          </button>
+        )}
       </div>
 
       <div className="max-w-[1400px] mx-auto px-8 py-8">
@@ -318,20 +338,24 @@ export default function SchoolCommunity() {
                           >
                             <Eye size={14} className="text-slate-600" />
                           </button>
-                          <button
-                            onClick={() => openEdit(item)}
-                            className="w-8 h-8 rounded-lg bg-blue-50 hover:bg-blue-100 flex items-center justify-center transition-colors"
-                            title="Edit"
-                          >
-                            <Pencil size={14} className="text-blue-600" />
-                          </button>
-                          <button
-                            onClick={() => setDeleteConfirm(item.id)}
-                            className="w-8 h-8 rounded-lg bg-red-50 hover:bg-red-100 flex items-center justify-center transition-colors"
-                            title="Delete"
-                          >
-                            <Trash2 size={14} className="text-red-500" />
-                          </button>
+                          {currentUser?.role !== 'employee' && (
+                            <>
+                              <button
+                                onClick={() => openEdit(item)}
+                                className="w-8 h-8 rounded-lg bg-blue-50 hover:bg-blue-100 flex items-center justify-center transition-colors"
+                                title="Edit"
+                              >
+                                <Pencil size={14} className="text-blue-600" />
+                              </button>
+                              <button
+                                onClick={() => setDeleteConfirm(item.id)}
+                                className="w-8 h-8 rounded-lg bg-red-50 hover:bg-red-100 flex items-center justify-center transition-colors"
+                                title="Delete"
+                              >
+                                <Trash2 size={14} className="text-red-500" />
+                              </button>
+                            </>
+                          )}
                         </div>
                       </td>
                     </tr>
