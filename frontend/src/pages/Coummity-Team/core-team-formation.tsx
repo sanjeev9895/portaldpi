@@ -17,7 +17,7 @@ export default function CoreTeamFormation() {
 
     <div className="min-h-screen bg-slate-100 flex items-center justify-center p-6">
 
-      <div className="bg-white rounded-3xl shadow-lg p-12 max-w-lg w-full text-center">
+      <div className="bg-white rounded-3xl shadow-lg p-12 max-w-lg w-full text-center">git add 
 
         <div className="w-24 h-24 mx-auto rounded-3xl bg-blue-100 flex items-center justify-center mb-6">
           <SettingsIcon
