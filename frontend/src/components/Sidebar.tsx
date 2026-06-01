@@ -97,7 +97,7 @@ export default function Sidebar({
     },
 
     {
-      title: 'Reports',
+      title: 'KPIs',
       icon: <FileText size={20} />,
 
       children: [
@@ -111,11 +111,7 @@ export default function Sidebar({
           title: 'Mentorship Team',
           path: '/mentorshipteam',
         },
-
-        {
-          title: 'Overall Report',
-          path: '/reports',
-        },
+        
       ],
     },
 

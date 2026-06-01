@@ -14,7 +14,7 @@ import Employees
   from './pages/Employees';
 
 import Reports
-  from './pages/Reports';
+  from './pages/KPIS';
 
 import Settings
   from './pages/Settings';
@@ -37,9 +37,6 @@ import ForgotPassword
 import ProfileSettings
   from './pages/profile-settings';
 
-import NotificationSettings
-  from './pages/NotificationSettings';
-
 import SecuritySettings
   from './pages/SecuritySettings';
 
@@ -52,45 +49,10 @@ import MentorshipTeam
 
 import CommunityTeam
   from './pages/communityteam';
-
-import Centinary
-  from './pages/communityteam/centinary';
-
-import Smc
-  from './pages/communityteam/Smc';
-
-import Ambassador
-  from './pages/communityteam/ambassadorpage/Ambassador';
-
-import AmbassadorList from './pages/communityteam/ambassadorpage/ambassadorlist'
-
-import AmbassadorSchools from './pages/communityteam/ambassadorpage/ambassadorschools'
-
-import CareerGuidance
-  from './pages/communityteam/CareerGuidance';
-
-import AlumniMagazine
-  from './pages/communityteam/alumnimagazine'
-
-import ACIS
-  from './pages/communityteam/acis';
-
-import MovieScreening
-  from './pages/communityteam/moviescreening';
-
-import Enrollment
-  from './pages/communityteam/enrollment';
-
-import Vocation
-  from './pages/communityteam/vocation';
-import Kanavaciriyar from './pages/communityteam/kanavaciriyar';
-import Thensittu from './pages/communityteam/thensittu';
-
-
-import Oonjal from './pages/communityteam/oonjal';
-
-
-
+import CoreEngagement from './pages/Coummity-Team/core-engagement';
+import CoreTeamFormation from './pages/Coummity-Team/core-team-formation';
+import WhatsappEngagement from './pages/Coummity-Team/whatsapp-engagement';
+import SchoolCommunity from './pages/Coummity-Team/school-community';
 
 export default function App() {
 
@@ -183,80 +145,7 @@ export default function App() {
           }
         />
 
-        <Route
-          path="/communityteam/centinary"
-          element={<Centinary />}
-        />
-
-        <Route
-          path="/communityteam/smc"
-          element={<Smc />}
-        />
-
-        <Route
-          path="/communityteam/ambassador"
-          element={<Ambassador />}
-        />
-
-        <Route
-          path="/communityteam/careerguidance"
-          element={
-            <CareerGuidance />
-          }
-        />
-
-        <Route
-          path="/communityteam/acis"
-          element={<ACIS />}
-        />
-
-        <Route
-          path="/communityteam/moviescreening"
-          element={<MovieScreening />}
-        />
-
-        <Route
-          path="/communityteam/enrollment"
-          element={<Enrollment />}
-        />
-
-        <Route
-          path="/communityteam/vocation"
-          element={<Vocation />}
-        />
-
-        <Route
-          path="/communityteam/alumnimagazine"
-          element={<AlumniMagazine />}
-        />
-
-
-        <Route
-          path="/communityteam/kanavaciriyar"
-          element={<Kanavaciriyar />}
-        />
-
-        <Route
-          path="/communityteam/thensittu"
-          element={<Thensittu />}
-        />
-
-        <Route
-          path="/communityteam/oonjal"
-          element={<Oonjal />}
-        />
-
-        <Route
-          path="/communityteam/ambassadorpage/ambassadorlist"
-          element={<AmbassadorList />}
-        />
-
-        <Route
-          path="/communityteam/ambassadorpage/ambassadorschools"
-          element={<AmbassadorSchools />}
-        />
-
-
+       
         {/* ===================================== */}
         {/* MENTORSHIP */}
         {/* ===================================== */}
@@ -292,9 +181,30 @@ export default function App() {
         />
 
         <Route
-          path="/notificationsettings"
+        path="/core-engagement"
+        element={
+          <CoreEngagement />
+          }
+        />
+
+        <Route 
+          path="/core-team-formation"
           element={
-            <NotificationSettings />
+            <CoreTeamFormation />
+          }
+        />
+
+        <Route
+          path="/whatsapp-engagement"
+          element={
+            <WhatsappEngagement />
+          }
+        />
+
+        <Route
+          path="/school-community"
+          element={
+            <SchoolCommunity />
           }
         />
 

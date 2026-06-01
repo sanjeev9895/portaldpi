@@ -398,7 +398,7 @@ export default function Employees() {
 
   const fetchEmployees = async () => {
     try {
-      const res = await api.get('/employees') 
+      const res = await api.get('/employees')
       const data = res.data
       // Handle all common API response shapes:
       // 1. Array directly:        res.data → []
@@ -509,94 +509,94 @@ export default function Employees() {
 
   const handleSave = async () => {
 
-  const errs = validate()
+    const errs = validate()
 
-  if (Object.keys(errs).length > 0) {
+    if (Object.keys(errs).length > 0) {
 
-    setFormErrors(errs)
+      setFormErrors(errs)
 
-    return
-  }
+      return
+    }
 
-  setSaving(true)
+    setSaving(true)
 
-  try {
+    try {
 
-    const payload = {
+      const payload = {
 
-      name,
+        name,
 
-      role,
+        role,
 
-      phone,
+        phone,
 
-      email,
+        email,
 
-      department,
+        department,
 
-      joining_date: joiningDate,
+        joining_date: joiningDate,
+
+      }
+
+      console.log("SENDING:", payload)
+
+      // =====================================
+      // UPDATE
+      // =====================================
+
+      if (editId) {
+
+        await api.put(
+
+          `/employees/${editId}`,
+
+          payload
+        )
+
+      }
+
+      // =====================================
+      // ADD
+      // =====================================
+
+      else {
+
+        await api.post(
+
+          '/employees',
+
+          payload
+        )
+      }
+
+      // =====================================
+      // REFRESH TABLE
+      // =====================================
+
+      await fetchEmployees()
+
+      // =====================================
+      // CLOSE MODAL
+      // =====================================
+
+      setShowModal(false)
+
+      resetForm()
 
     }
 
-    console.log("SENDING:", payload)
+    catch (err) {
 
-    // =====================================
-    // UPDATE
-    // =====================================
+      console.log(err)
 
-    if (editId) {
-
-      await api.put(
-
-        `/employees/${editId}`,
-
-        payload
-      )
-
+      alert("Failed to save employee")
     }
 
-    // =====================================
-    // ADD
-    // =====================================
+    finally {
 
-    else {
-
-      await api.post(
-        
-        '/employees',
-
-        payload
-      )
+      setSaving(false)
     }
-
-    // =====================================
-    // REFRESH TABLE
-    // =====================================
-
-    await fetchEmployees()
-
-    // =====================================
-    // CLOSE MODAL
-    // =====================================
-
-    setShowModal(false)
-
-    resetForm()
-
   }
-
-  catch (err) {
-
-    console.log(err)
-
-    alert("Failed to save employee")
-  }
-
-  finally {
-
-    setSaving(false)
-  }
-}
   /* ===================================== */
   /* FILTER */
   /* ===================================== */
@@ -704,20 +704,39 @@ export default function Employees() {
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-slate-100 bg-slate-50">
-                <th className="px-5 py-4 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">Employee</th>
-                <th className="px-5 py-4 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">Role</th>
-                <th className="px-5 py-4 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">Contact</th>
-                <th className="px-5 py-4 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">Department</th>
-                <th className="px-5 py-4 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">Joined</th>
-                <th className="px-5 py-4 text-right text-xs font-bold text-slate-400 uppercase tracking-wider">Actions</th>
-              </tr>
+              <th className="px-5 py-4 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">
+                Employee
+              </th>
+
+              <th className="px-5 py-4 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">
+                Role
+              </th>
+
+              <th className="px-5 py-4 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">
+                Contact
+              </th>
+
+              <th className="px-5 py-4 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">
+                Email
+              </th>
+
+              <th className="px-5 py-4 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">
+                Department
+              </th>
+
+              <th className="px-5 py-4 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">
+                Joined
+              </th>
+
+              <th className="px-5 py-4 text-right text-xs font-bold text-slate-400 uppercase tracking-wider">
+                Actions
+              </th>
             </thead>
 
             <tbody className="divide-y divide-slate-50">
               {filteredEmployees.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-20 text-center">
+                  <td colSpan={7} className="py-20 text-center">
                     <div className="flex flex-col items-center gap-3">
                       <div className="w-16 h-16 rounded-2xl bg-slate-100 flex items-center justify-center">
                         <Users size={28} className="text-slate-300" />
@@ -772,16 +791,15 @@ export default function Employees() {
                         </span>
                       </td>
 
-                      {/* Contact */}
+                      {/* Email */}
                       <td className="px-5 py-4">
-                        <div className="flex flex-col gap-0.5">
-                          <span className="flex items-center gap-1.5 text-xs text-slate-600 font-medium">
-                            <Mail size={11} className="text-slate-400" />
-                            {item.email}
-                          </span>
-                          <span className="flex items-center gap-1.5 text-xs text-slate-400 font-medium">
-                            <Phone size={11} className="text-slate-400" />
-                            {item.phone}
+                        <div className="flex items-center gap-2">
+                          <Mail
+                            size={14}
+                            className="text-slate-400"
+                          />
+                          <span className="text-sm font-medium text-slate-700">
+                            {item.email || "-"}
                           </span>
                         </div>
                       </td>

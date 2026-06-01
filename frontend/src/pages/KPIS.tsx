@@ -20,7 +20,7 @@ interface Report {
   date: string;
   status: string;
 }
-export default function Reports() {
+export default function KPIS() {
 
   const [reports, setReports] = useState<Report[]>([
     {
