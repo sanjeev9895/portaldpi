@@ -42,6 +42,8 @@ const EMPTY_FORM: FormData = {
 export default function CoreTeamFormation() {
   const [search, setSearch] = useState("");
   const [enteredByFilter, setEnteredByFilter] = useState("");
+  const [districtFilter, setDistrictFilter] = useState("");
+  const [blockFilter, setBlockFilter] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
   const [viewItem, setViewItem] = useState<CoreTeamRecord | null>(null);
@@ -197,11 +199,13 @@ export default function CoreTeamFormation() {
   const filteredData = data.filter((item) =>
     (item.school_name.toLowerCase().includes(search.toLowerCase()) ||
      item.core_team_name.toLowerCase().includes(search.toLowerCase())) &&
-    (enteredByFilter ? (item.entered_by?.toLowerCase().includes(enteredByFilter.toLowerCase())) : true)
+    (enteredByFilter ? (item.entered_by?.toLowerCase().includes(enteredByFilter.toLowerCase())) : true) &&
+    (districtFilter ? item.district === districtFilter : true) &&
+    (blockFilter ? item.block === blockFilter : true)
   );
 
-  const totalMembers = data.reduce((sum, d) => sum + d.how_many_members, 0);
-  const formedCount = data.filter((d) => d.core_team_formation === "Yes").length;
+  const totalMembers = filteredData.reduce((sum, d) => sum + d.how_many_members, 0);
+  const formedCount = filteredData.filter((d) => d.core_team_formation === "Yes").length;
 
   return (
     <div
@@ -241,14 +245,14 @@ export default function CoreTeamFormation() {
           {[
             {
               label: "Total Registered Committees",
-              value: data.length,
+              value: filteredData.length,
               icon: <Users size={20} className="text-blue-600" />,
               bg: "bg-blue-50",
               accent: "text-blue-600",
             },
             {
               label: "Formed Status",
-              value: `${formedCount} / ${data.length}`,
+              value: `${formedCount} / ${filteredData.length}`,
               icon: <CheckCircle size={20} className="text-emerald-600" />,
               bg: "bg-emerald-50",
               accent: "text-emerald-600",
@@ -274,7 +278,7 @@ export default function CoreTeamFormation() {
         </div>
 
         {/* Search & Filter */}
-        <div className="flex items-center gap-4 mb-5">
+        <div className="flex flex-col md:flex-row items-stretch md:items-center gap-4 mb-5">
           {/* Search */}
           <div className="bg-white rounded-2xl border border-slate-200 px-5 py-4 flex-1 flex items-center gap-3 shadow-sm">
             <Search size={18} className="text-slate-400 flex-shrink-0" />
@@ -291,12 +295,62 @@ export default function CoreTeamFormation() {
               </button>
             )}
           </div>
+
+          {/* District Filter */}
+          <div className="bg-white rounded-2xl border border-slate-200 px-5 py-4 flex items-center gap-3 shadow-sm min-w-[200px]">
+            <select
+              value={districtFilter}
+              onChange={(e) => {
+                setDistrictFilter(e.target.value);
+                setBlockFilter(""); // Reset block filter when district changes
+              }}
+              className="flex-1 bg-transparent text-sm text-slate-700 placeholder:text-slate-400 outline-none cursor-pointer"
+            >
+              <option value="">All Districts</option>
+              {DISTRICTS.map((d) => (
+                <option key={d} value={d}>
+                  {d}
+                </option>
+              ))}
+            </select>
+            {districtFilter && (
+              <button onClick={() => { setDistrictFilter(""); setBlockFilter(""); }} className="text-slate-400 hover:text-slate-600">
+                <X size={16} />
+              </button>
+            )}
+          </div>
+
+          {/* Block Filter */}
+          <div className="bg-white rounded-2xl border border-slate-200 px-5 py-4 flex items-center gap-3 shadow-sm min-w-[200px]">
+            <select
+              value={blockFilter}
+              onChange={(e) => setBlockFilter(e.target.value)}
+              disabled={!districtFilter}
+              className="flex-1 bg-transparent text-sm text-slate-700 placeholder:text-slate-400 outline-none cursor-pointer disabled:opacity-50"
+            >
+              <option value="">
+                {districtFilter ? "All Blocks" : "Select District First"}
+              </option>
+              {districtFilter &&
+                (DISTRICT_BLOCKS[districtFilter] || []).map((b) => (
+                  <option key={b} value={b}>
+                    {b}
+                  </option>
+                ))}
+            </select>
+            {blockFilter && (
+              <button onClick={() => setBlockFilter("")} className="text-slate-400 hover:text-slate-600">
+                <X size={16} />
+              </button>
+            )}
+          </div>
+
           {/* Entered By Filter */}
-          <div className="bg-white rounded-2xl border border-slate-200 px-5 py-4 flex items-center gap-3 shadow-sm">
+          <div className="bg-white rounded-2xl border border-slate-200 px-5 py-4 flex items-center gap-3 shadow-sm min-w-[200px]">
             <select
               value={enteredByFilter}
               onChange={(e) => setEnteredByFilter(e.target.value)}
-              className="flex-1 bg-transparent text-sm text-slate-700 placeholder:text-slate-400 outline-none"
+              className="flex-1 bg-transparent text-sm text-slate-700 placeholder:text-slate-400 outline-none cursor-pointer"
             >
               <option value="">All entered by</option>
               {Array.from(new Set(data.map(item => item.entered_by).filter(Boolean))).map(name => (

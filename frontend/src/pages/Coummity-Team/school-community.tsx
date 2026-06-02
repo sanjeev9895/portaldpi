@@ -37,16 +37,30 @@ const EMPTY_FORM: FormData = {
   district: "",
   block: "",
   whatsapp_group: "",
-  mobilization: "Yes",
+  mobilization: "No",
   members: "",
   proof: null,
   platform: "",
   remarks: "",
 };
 
+const getWhatsAppLink = (input: string) => {
+  if (!input) return null;
+  const trimmed = input.trim();
+  if (/^https?:\/\//i.test(trimmed)) {
+    return trimmed;
+  }
+  if (/^(chat\.whatsapp\.com|wa\.me)/i.test(trimmed)) {
+    return `https://${trimmed}`;
+  }
+  return null;
+};
+
 export default function SchoolCommunity() {
   const [search, setSearch] = useState("");
   const [enteredByFilter, setEnteredByFilter] = useState("");
+  const [districtFilter, setDistrictFilter] = useState("");
+  const [blockFilter, setBlockFilter] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
   const [viewItem, setViewItem] = useState<SchoolCommunityRecord | null>(null);
@@ -79,7 +93,7 @@ export default function SchoolCommunity() {
         school_name: "Govt Hr Sec School",
         district: "Madurai",
         block: "Madurai East",
-        whatsapp_group: "GHSS Alumni 2025",
+        whatsapp_group: "https://chat.whatsapp.com/GHSSAlumni2025",
         mobilization: "Yes",
         members: 650,
         proof: "https://via.placeholder.com/150",
@@ -91,7 +105,7 @@ export default function SchoolCommunity() {
         school_name: "St. Joseph's Hr Sec School",
         district: "Tiruchirappalli",
         block: "Thiruverumbur",
-        whatsapp_group: "SJS Alumni Network",
+        whatsapp_group: "https://chat.whatsapp.com/SJSAlumniNetwork",
         mobilization: "Yes",
         members: 820,
         proof: null,
@@ -103,7 +117,7 @@ export default function SchoolCommunity() {
         school_name: "Anna Matriculation School",
         district: "Salem",
         block: "Salem",
-        whatsapp_group: "Anna Matric Old Boys",
+        whatsapp_group: "https://chat.whatsapp.com/AnnaMatricOldBoys",
         mobilization: "No",
         members: 510,
         proof: null,
@@ -128,7 +142,7 @@ export default function SchoolCommunity() {
     if (!formData.district.trim()) e.district = "District is required";
     if (!formData.block.trim()) e.block = "Block is required";
     if (!formData.members) e.members = "Members count is required";
-    else if (Number(formData.members) < 500) e.members = "Must be 500 or more";
+    else if (Number(formData.members) < 0) e.members = "Must be 0 or more";
     if (!formData.platform.trim()) e.platform = "Celebrated Platform is required";
     setErrors(e);
     return Object.keys(e).length === 0;
@@ -160,6 +174,7 @@ export default function SchoolCommunity() {
 
   const handleSave = () => {
     if (!validate()) return;
+    const calculatedMobilization = Number(formData.members) >= 500 ? "Yes" : "No";
 
     if (editId !== null) {
       setData(
@@ -171,7 +186,7 @@ export default function SchoolCommunity() {
                 district: formData.district,
                 block: formData.block,
                 whatsapp_group: formData.whatsapp_group,
-                mobilization: formData.mobilization,
+                mobilization: calculatedMobilization,
                 members: Number(formData.members),
                 proof: formData.proof ?? item.proof,
                 platform: formData.platform,
@@ -189,7 +204,7 @@ export default function SchoolCommunity() {
           district: formData.district,
           block: formData.block,
           whatsapp_group: formData.whatsapp_group,
-          mobilization: formData.mobilization,
+          mobilization: calculatedMobilization,
           members: Number(formData.members),
           proof: formData.proof,
           platform: formData.platform,
@@ -209,11 +224,13 @@ export default function SchoolCommunity() {
 
   const filteredData = data.filter((item) =>
     item.school_name.toLowerCase().includes(search.toLowerCase()) &&
-    (enteredByFilter ? (item.entered_by?.toLowerCase().includes(enteredByFilter.toLowerCase())) : true)
+    (enteredByFilter ? (item.entered_by?.toLowerCase().includes(enteredByFilter.toLowerCase())) : true) &&
+    (districtFilter ? item.district === districtFilter : true) &&
+    (blockFilter ? item.block === blockFilter : true)
   );
 
-  const totalMembers = data.reduce((sum, d) => sum + d.members, 0);
-  const mobilizedCount = data.filter((d) => d.mobilization === "Yes").length;
+  const totalMembers = filteredData.reduce((sum, d) => sum + d.members, 0);
+  const mobilizedCount = filteredData.filter((d) => d.mobilization === "Yes").length;
 
   return (
     <div
@@ -265,7 +282,7 @@ export default function SchoolCommunity() {
           {[
             {
               label: "Total Schools",
-              value: data.length,
+              value: filteredData.length,
               icon: <School size={20} className="text-blue-600" />,
               bg: "bg-blue-50",
               accent: "text-blue-600",
@@ -279,7 +296,7 @@ export default function SchoolCommunity() {
             },
             {
               label: "Mobilized",
-              value: `${mobilizedCount} / ${data.length}`,
+              value: `${mobilizedCount} / ${filteredData.length}`,
               icon: <CheckCircle size={20} className="text-violet-600" />,
               bg: "bg-violet-50",
               accent: "text-violet-600",
@@ -300,7 +317,7 @@ export default function SchoolCommunity() {
           ))}
         </div>
         {/* Search & Filter */}
-        <div className="flex items-center gap-4 mb-5">
+        <div className="flex flex-col md:flex-row items-stretch md:items-center gap-4 mb-5">
           {/* Search */}
           <div className="bg-white rounded-2xl border border-slate-200 px-5 py-4 flex-1 flex items-center gap-3 shadow-sm">
             <Search size={18} className="text-slate-400 flex-shrink-0" />
@@ -317,12 +334,62 @@ export default function SchoolCommunity() {
               </button>
             )}
           </div>
+
+          {/* District Filter */}
+          <div className="bg-white rounded-2xl border border-slate-200 px-5 py-4 flex items-center gap-3 shadow-sm min-w-[200px]">
+            <select
+              value={districtFilter}
+              onChange={(e) => {
+                setDistrictFilter(e.target.value);
+                setBlockFilter(""); // Reset block filter when district changes
+              }}
+              className="flex-1 bg-transparent text-sm text-slate-700 placeholder:text-slate-400 outline-none cursor-pointer"
+            >
+              <option value="">All Districts</option>
+              {DISTRICTS.map((d) => (
+                <option key={d} value={d}>
+                  {d}
+                </option>
+              ))}
+            </select>
+            {districtFilter && (
+              <button onClick={() => { setDistrictFilter(""); setBlockFilter(""); }} className="text-slate-400 hover:text-slate-600">
+                <X size={16} />
+              </button>
+            )}
+          </div>
+
+          {/* Block Filter */}
+          <div className="bg-white rounded-2xl border border-slate-200 px-5 py-4 flex items-center gap-3 shadow-sm min-w-[200px]">
+            <select
+              value={blockFilter}
+              onChange={(e) => setBlockFilter(e.target.value)}
+              disabled={!districtFilter}
+              className="flex-1 bg-transparent text-sm text-slate-700 placeholder:text-slate-400 outline-none cursor-pointer disabled:opacity-50"
+            >
+              <option value="">
+                {districtFilter ? "All Blocks" : "Select District First"}
+              </option>
+              {districtFilter &&
+                DISTRICT_BLOCKS[districtFilter]?.map((b) => (
+                  <option key={b} value={b}>
+                    {b}
+                  </option>
+                ))}
+            </select>
+            {blockFilter && (
+              <button onClick={() => setBlockFilter("")} className="text-slate-400 hover:text-slate-600">
+                <X size={16} />
+              </button>
+            )}
+          </div>
+
           {/* Entered By Filter */}
-          <div className="bg-white rounded-2xl border border-slate-200 px-5 py-4 flex items-center gap-3 shadow-sm">
+          <div className="bg-white rounded-2xl border border-slate-200 px-5 py-4 flex items-center gap-3 shadow-sm min-w-[200px]">
             <select
               value={enteredByFilter}
               onChange={(e) => setEnteredByFilter(e.target.value)}
-              className="flex-1 bg-transparent text-sm text-slate-700 placeholder:text-slate-400 outline-none"
+              className="flex-1 bg-transparent text-sm text-slate-700 placeholder:text-slate-400 outline-none cursor-pointer"
             >
               <option value="">All entered by</option>
               {Array.from(new Set(data.map(item => item.entered_by).filter(Boolean))).map(name => (
@@ -389,8 +456,26 @@ export default function SchoolCommunity() {
                       <td className="px-5 py-4 text-slate-600 font-medium">
                         {item.block || <span className="text-slate-300">—</span>}
                       </td>
-                      <td className="px-5 py-4 text-slate-600">
-                        {item.whatsapp_group || <span className="text-slate-300">—</span>}
+                      <td className="px-5 py-4">
+                        {item.whatsapp_group ? (
+                          (() => {
+                            const link = getWhatsAppLink(item.whatsapp_group);
+                            return link ? (
+                              <a
+                                href={link}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-blue-600 hover:text-blue-800 hover:underline font-semibold inline-flex items-center gap-1 cursor-pointer"
+                              >
+                                Join Group ↗
+                              </a>
+                            ) : (
+                              <span className="text-slate-600 font-medium">{item.whatsapp_group}</span>
+                            );
+                          })()
+                        ) : (
+                          <span className="text-slate-300">—</span>
+                        )}
                       </td>
                       <td className="px-5 py-4">
                         <span
@@ -556,11 +641,11 @@ export default function SchoolCommunity() {
                   </div>
                 </Field>
 
-                {/* WhatsApp Group */}
-                <Field label="WhatsApp Group Name">
+                {/* WhatsApp Group Link */}
+                <Field label="WhatsApp Group Link">
                   <input
                     type="text"
-                    placeholder="e.g. GHSS Alumni 2025"
+                    placeholder="e.g. https://chat.whatsapp.com/..."
                     value={formData.whatsapp_group}
                     onChange={(e) => setFormData({ ...formData, whatsapp_group: e.target.value })}
                     className={inputCls(false)}
@@ -568,12 +653,12 @@ export default function SchoolCommunity() {
                 </Field>
 
                 {/* Alumni Mobilization */}
-                <Field label="Alumni Mobilization">
+                <Field label="Alumni Mobilization (Auto-calculated)">
                   <div className="relative">
                     <select
                       value={formData.mobilization}
-                      onChange={(e) => setFormData({ ...formData, mobilization: e.target.value })}
-                      className={inputCls(false) + " appearance-none pr-9 cursor-pointer"}
+                      disabled
+                      className="w-full border border-slate-200 bg-slate-50 rounded-xl px-3.5 py-2.5 text-sm text-slate-500 outline-none appearance-none pr-9 cursor-not-allowed"
                     >
                       <option value="Yes">Yes</option>
                       <option value="No">No</option>
@@ -589,10 +674,17 @@ export default function SchoolCommunity() {
                 <Field label="Members Count *" error={errors.members}>
                   <input
                     type="number"
-                    min="500"
-                    placeholder="Min 500"
+                    placeholder="e.g. 550"
                     value={formData.members}
-                    onChange={(e) => setFormData({ ...formData, members: e.target.value })}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      const calculatedMobilization = Number(val) >= 500 ? "Yes" : "No";
+                      setFormData({
+                        ...formData,
+                        members: val,
+                        mobilization: calculatedMobilization,
+                      });
+                    }}
                     className={inputCls(!!errors.members)}
                   />
                 </Field>

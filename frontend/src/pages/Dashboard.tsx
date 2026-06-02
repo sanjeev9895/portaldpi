@@ -19,6 +19,7 @@ import {
 } from 'react'
 
 import axios from 'axios'
+import { useNavigate } from 'react-router-dom'
 
 import {
   PieChart,
@@ -33,6 +34,7 @@ import {
 
 export default function Dashboard() {
 
+  const navigate = useNavigate();
   const [employees, setEmployees] = useState<any[]>([])
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('All Reports');
@@ -339,6 +341,10 @@ export default function Dashboard() {
       alert('Checked Out Successfully!')
       setWorkDone('')
       fetchAttendance()
+      
+      // Log out and redirect
+      localStorage.removeItem('user')
+      navigate('/login')
     } catch (err) {
       console.error('Check-out error:', err)
       alert('Failed to check out')
@@ -678,8 +684,23 @@ export default function Dashboard() {
                 </button>
               </div>
             ) : (
-              <div className="bg-white/20 px-6 py-3 rounded-2xl text-sm font-semibold backdrop-blur-md text-center">
-                Checked Out for Today
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full">
+                <button
+                  onClick={handleCheckIn}
+                  disabled={submittingAttendance}
+                  className="bg-white text-blue-600 font-bold px-6 py-3 rounded-2xl hover:bg-blue-50 active:scale-95 transition-all duration-300 disabled:opacity-50 shadow-md text-center whitespace-nowrap cursor-pointer"
+                >
+                  {submittingAttendance ? 'Checking In...' : 'Check In Again'}
+                </button>
+                <button
+                  onClick={() => {
+                    localStorage.removeItem('user');
+                    navigate('/login');
+                  }}
+                  className="bg-white/20 hover:bg-white/35 active:scale-95 px-6 py-3 rounded-2xl text-sm font-bold backdrop-blur-md text-center transition-all duration-300 cursor-pointer shadow-md text-white border border-white/10 whitespace-nowrap"
+                >
+                  Checked Out for Today (Log Out)
+                </button>
               </div>
             )}
           </div>
