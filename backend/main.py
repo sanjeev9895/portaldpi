@@ -1,10 +1,12 @@
-﻿from fastapi import FastAPI, Depends,HTTPException
+from fastapi import FastAPI, Depends,HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from sqlalchemy import text
+from schemas import EmployeeCreate
     
 from database import SessionLocal, engine
 import models
+from models import Employee
 
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -57,91 +59,67 @@ def get_db():
 # EMPLOYEES API
 # =========================================================
 
-@app.get("/employees")
-def get_employees(
-    db: Session = Depends(get_db)
-):
-
-    return db.query(
-        models.Employee
-    ).all()
-
+# CREATE
 @app.post("/employees")
-def add_employee(
-    data: dict,
+def create_employee(
+    emp: EmployeeCreate,
     db: Session = Depends(get_db)
 ):
-
-    employee = models.Employee(**data)
+    employee = Employee(**emp.model_dump())
 
     db.add(employee)
-
     db.commit()
-
     db.refresh(employee)
 
     return employee
 
+# READ ALL
+@app.get("/employees")
+def get_employees(db: Session = Depends(get_db)):
+    return db.query(Employee).all()
+
+# READ ONE
+@app.get("/employees/{id}")
+def get_employee(id: int, db: Session = Depends(get_db)):
+    employee = db.query(Employee).filter(Employee.id == id).first()
+
+    if not employee:
+        raise HTTPException(404, "Employee not found")
+
+    return employee
+
+# UPDATE
 @app.put("/employees/{id}")
 def update_employee(
     id: int,
-    data: dict,
+    emp: EmployeeCreate,
     db: Session = Depends(get_db)
 ):
+    employee = db.query(Employee).filter(Employee.id == id).first()
 
-    employee = db.query(
-        models.Employee
-    ).filter(
-        models.Employee.id == id
-    ).first()
+    if not employee:
+        raise HTTPException(404, "Employee not found")
 
-    if employee:
+    for key, value in emp.model_dump().items():
+        setattr(employee, key, value)
 
-        employee.name = data["name"]
-        employee.email = data["email"]
-        employee.phone = data["phone"]
-        employee.department = data["department"]
-        employee.role = data["role"]
-        employee.joining_date = data["joining_date"]
+    db.commit()
+    db.refresh(employee)
 
-        db.commit()
+    return employee
 
-    return {
-        "message":
-        "Employee Updated"
-    }
-
+# DELETE
 @app.delete("/employees/{id}")
-def delete_employee(
-    id: int,
-    db: Session = Depends(get_db)
-):
+def delete_employee(id: int, db: Session = Depends(get_db)):
+    employee = db.query(Employee).filter(Employee.id == id).first()
 
-    employee = db.query(
-        models.Employee
-    ).filter(
-        models.Employee.id == id
-    ).first()
+    if not employee:
+        raise HTTPException(404, "Employee not found")
 
-    if employee:
+    db.delete(employee)
+    db.commit()
 
-        db.delete(employee)
-
-        db.commit()
-
-        db.execute(text("""
-        SELECT setval(
-            'employees_id_seq',
-            COALESCE((SELECT MAX(id) FROM employees), 1)
-        )
-        """))
-
-        db.commit()
-
-    return {
-        "message":
-        "Employee Deleted"
-    }
+    return {"message": "Employee deleted"}
 
 # =========================================================
 # ATTENDANCE API

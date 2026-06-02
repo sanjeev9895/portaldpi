@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 
 export default function Register() {
 
@@ -35,8 +36,26 @@ export default function Register() {
         alert('Email is already registered!');
         return;
       }
+      
+      // Save in localStorage for auth validation
       registeredUsers.push({ name, phone, email, password, role });
       localStorage.setItem('registeredUsers', JSON.stringify(registeredUsers));
+
+      // Save in SQLite Database as Employee
+      const todayStr = new Date(Date.now() - (new Date()).getTimezoneOffset() * 60000).toISOString().split('T')[0];
+      axios.post('http://127.0.0.1:8000/employees', {
+        name: name,
+        email: email,
+        contact: phone,
+        department: 'Development',
+        role: role.charAt(0).toUpperCase() + role.slice(1),
+        joining_date: todayStr
+      }).then(() => {
+        console.log('Employee stored in backend');
+      }).catch(err => {
+        console.error('Failed to store employee in backend:', err);
+      });
+
       alert('Registration Successful');
       navigate('/login');
     } else {

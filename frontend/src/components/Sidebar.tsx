@@ -141,7 +141,7 @@ export default function Sidebar({
   // Filter menu items based on role
   const filteredMenuItems = menuItems.filter(item => {
     if (userRole === 'employee') {
-      return item.title !== 'Employees' && item.title !== 'Attendance';
+      return item.title !== 'Employees';
     }
     return true;
   });

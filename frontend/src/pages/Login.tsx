@@ -99,7 +99,7 @@ const handleLogin = () => {
     alert('Login Successful');
     navigate('/dashboard');
   } else {
-    alert('Invalid Email or Password');
+    alert('Login Failed: Please check your credentials or register for an account.');
   }
 }
 

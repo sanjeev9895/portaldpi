@@ -1,19 +1,26 @@
-import { useState, useEffect } from "react";
-import { Search, Plus, Eye, Pencil, Trash2, X, Users, CheckCircle, XCircle, Upload, Image as ImageIcon } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
+import { Search, Plus, Eye, Pencil, Trash2, X, Users, CheckCircle, XCircle, Upload, Image as ImageIcon, ChevronDown } from "lucide-react";
 import BackButton from "../../components/BackButton";
+import { DISTRICTS, DISTRICT_BLOCKS } from "../../utils/districtData";
 
 type CoreTeamRecord = {
   id: number;
   school_name: string;
+  district?: string;
+  block?: string;
   core_team_name: string;
   core_team_formation: string; // "Yes" or "No"
   how_many_members: number;
   proof: string | File | null;
   remarks: string;
+  entered_by?: string;
+  entered_time?: string;
 };
 
 type FormData = {
   school_name: string;
+  district: string;
+  block: string;
   core_team_name: string;
   core_team_formation: string;
   how_many_members: string;
@@ -23,6 +30,8 @@ type FormData = {
 
 const EMPTY_FORM: FormData = {
   school_name: "",
+  district: "",
+  block: "",
   core_team_name: "",
   core_team_formation: "Yes",
   how_many_members: "",
@@ -32,6 +41,7 @@ const EMPTY_FORM: FormData = {
 
 export default function CoreTeamFormation() {
   const [search, setSearch] = useState("");
+  const [enteredByFilter, setEnteredByFilter] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
   const [viewItem, setViewItem] = useState<CoreTeamRecord | null>(null);
@@ -62,6 +72,8 @@ export default function CoreTeamFormation() {
       {
         id: 1,
         school_name: "Govt Hr Sec School, Madurai",
+        district: "Madurai",
+        block: "Madurai West",
         core_team_name: "Madurai Alumni Core Team",
         core_team_formation: "Yes",
         how_many_members: 9,
@@ -71,6 +83,8 @@ export default function CoreTeamFormation() {
       {
         id: 2,
         school_name: "St. Mary's School, Trichy",
+        district: "Tiruchirappalli",
+        block: "Lalgudi",
         core_team_name: "St. Mary Alumni association",
         core_team_formation: "Yes",
         how_many_members: 7,
@@ -80,6 +94,8 @@ export default function CoreTeamFormation() {
       {
         id: 3,
         school_name: "GHSS, Salem",
+        district: "Salem",
+        block: "Omalur",
         core_team_name: "Salem Core Committee",
         core_team_formation: "No",
         how_many_members: 5,
@@ -101,6 +117,8 @@ export default function CoreTeamFormation() {
   const validate = () => {
     const e: Partial<Record<keyof FormData, string>> = {};
     if (!formData.school_name.trim()) e.school_name = "School name is required";
+    if (!formData.district.trim()) e.district = "District is required";
+    if (!formData.block.trim()) e.block = "Block is required";
     if (!formData.core_team_name.trim()) e.core_team_name = "Core team name is required";
     if (!formData.how_many_members) e.how_many_members = "Headcount is required";
     else if (Number(formData.how_many_members) <= 0) e.how_many_members = "Must be greater than 0";
@@ -118,6 +136,8 @@ export default function CoreTeamFormation() {
   const openEdit = (item: CoreTeamRecord) => {
     setFormData({
       school_name: item.school_name,
+      district: item.district || "",
+      block: item.block || "",
       core_team_name: item.core_team_name,
       core_team_formation: item.core_team_formation,
       how_many_members: String(item.how_many_members),
@@ -138,6 +158,8 @@ export default function CoreTeamFormation() {
           ? {
               ...item,
               school_name: formData.school_name,
+              district: formData.district,
+              block: formData.block,
               core_team_name: formData.core_team_name,
               core_team_formation: formData.core_team_formation,
               how_many_members: Number(formData.how_many_members),
@@ -152,11 +174,15 @@ export default function CoreTeamFormation() {
         {
           id: Date.now(),
           school_name: formData.school_name,
+          district: formData.district,
+          block: formData.block,
           core_team_name: formData.core_team_name,
           core_team_formation: formData.core_team_formation,
           how_many_members: Number(formData.how_many_members),
           proof: formData.proof,
           remarks: formData.remarks,
+          entered_by: currentUser?.name || 'Unknown',
+          entered_time: new Date().toLocaleString(),
         },
       ]);
     }
@@ -169,8 +195,9 @@ export default function CoreTeamFormation() {
   };
 
   const filteredData = data.filter((item) =>
-    item.school_name.toLowerCase().includes(search.toLowerCase()) ||
-    item.core_team_name.toLowerCase().includes(search.toLowerCase())
+    (item.school_name.toLowerCase().includes(search.toLowerCase()) ||
+     item.core_team_name.toLowerCase().includes(search.toLowerCase())) &&
+    (enteredByFilter ? (item.entered_by?.toLowerCase().includes(enteredByFilter.toLowerCase())) : true)
   );
 
   const totalMembers = data.reduce((sum, d) => sum + d.how_many_members, 0);
@@ -193,15 +220,13 @@ export default function CoreTeamFormation() {
             <span className="font-semibold text-slate-800 text-sm">Core Team Formation</span>
           </div>
         </div>
-        {currentUser?.role !== 'employee' && (
-          <button
-            onClick={openAdd}
-            className="flex items-center gap-2 bg-violet-600 hover:bg-violet-700 active:scale-95 text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition-all shadow-sm shadow-violet-200 animate-fade-in"
-          >
-            <Plus size={16} />
-            Add Core Team
-          </button>
-        )}
+        <button
+          onClick={openAdd}
+          className="flex items-center gap-2 bg-violet-600 hover:bg-violet-700 active:scale-95 text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition-all shadow-sm shadow-violet-200 animate-fade-in"
+        >
+          <Plus size={16} />
+          Add Core Team
+        </button>
       </div>
 
       <div className="max-w-[1400px] mx-auto px-8 py-8">
@@ -248,30 +273,49 @@ export default function CoreTeamFormation() {
           ))}
         </div>
 
-        {/* Search */}
-        <div className="bg-white rounded-2xl border border-slate-200 px-5 py-4 mb-5 flex items-center gap-3 shadow-sm">
-          <Search size={18} className="text-slate-400 flex-shrink-0" />
-          <input
-            type="text"
-            placeholder="Search by school or team name..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="flex-1 bg-transparent text-sm text-slate-700 placeholder:text-slate-400 outline-none"
-          />
-          {search && (
-            <button onClick={() => setSearch("")} className="text-slate-400 hover:text-slate-600">
-              <X size={16} />
-            </button>
-          )}
-        </div>
-
-        {/* Table */}
+        {/* Search & Filter */}
+        <div className="flex items-center gap-4 mb-5">
+          {/* Search */}
+          <div className="bg-white rounded-2xl border border-slate-200 px-5 py-4 flex-1 flex items-center gap-3 shadow-sm">
+            <Search size={18} className="text-slate-400 flex-shrink-0" />
+            <input
+              type="text"
+              placeholder="Search by school or team name..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="flex-1 bg-transparent text-sm text-slate-700 placeholder:text-slate-400 outline-none"
+            />
+            {search && (
+              <button onClick={() => setSearch("")} className="text-slate-400 hover:text-slate-600">
+                <X size={16} />
+              </button>
+            )}
+          </div>
+          {/* Entered By Filter */}
+          <div className="bg-white rounded-2xl border border-slate-200 px-5 py-4 flex items-center gap-3 shadow-sm">
+            <select
+              value={enteredByFilter}
+              onChange={(e) => setEnteredByFilter(e.target.value)}
+              className="flex-1 bg-transparent text-sm text-slate-700 placeholder:text-slate-400 outline-none"
+            >
+              <option value="">All entered by</option>
+              {Array.from(new Set(data.map(item => item.entered_by).filter(Boolean))).map(name => (
+                <option key={name} value={name}>{name}</option>
+              ))}
+            </select>
+            {enteredByFilter && (
+              <button onClick={() => setEnteredByFilter("")} className="text-slate-400 hover:text-slate-600">
+                <X size={16} />
+              </button>
+            )}
+          </div>
+        </div>{/* Table */}
         <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-slate-900 text-white">
-                  {["Sl No", "School Name", "Core Team Name", "Core Team Formation", "How Many Members", "Proof (images)", "Remarks", "Actions"].map((h) => (
+                  {["Sl No", "School Name", "District", "Block", "Core Team Name", "Core Team Formation", "How Many Members", "Proof (images)", "Remarks", "Actions", "Entered By"].map((h) => (
                     <th key={h} className="px-5 py-4 text-left font-semibold text-xs tracking-wider uppercase whitespace-nowrap">
                       {h}
                     </th>
@@ -281,7 +325,7 @@ export default function CoreTeamFormation() {
               <tbody>
                 {filteredData.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="px-5 py-16 text-center text-slate-400 text-sm">
+                    <td colSpan={11} className="px-5 py-16 text-center text-slate-400 text-sm">
                       No core teams found. Add one to get started.
                     </td>
                   </tr>
@@ -290,6 +334,8 @@ export default function CoreTeamFormation() {
                     <tr key={item.id} className="border-t border-slate-100 hover:bg-slate-50 transition-colors group">
                       <td className="px-5 py-4 text-slate-400 font-medium">{String(index + 1).padStart(2, "0")}</td>
                       <td className="px-5 py-4 font-semibold text-slate-800">{item.school_name}</td>
+                      <td className="px-5 py-4">{item.district}</td>
+                      <td className="px-5 py-4">{item.block}</td>
                       <td className="px-5 py-4 text-slate-700 font-medium">{item.core_team_name}</td>
                       <td className="px-5 py-4">
                         <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${
@@ -341,6 +387,10 @@ export default function CoreTeamFormation() {
                           )}
                         </div>
                       </td>
+                      <td className="px-5 py-4">
+                        <div className="font-semibold text-slate-800 text-xs">{item.entered_by || 'Unknown'}</div>
+                        <div className="text-[10px] text-slate-400 font-medium">{item.entered_time || '—'}</div>
+                      </td>
                     </tr>
                   ))
                 )}
@@ -382,6 +432,32 @@ export default function CoreTeamFormation() {
                     onChange={(e) => setFormData({ ...formData, school_name: e.target.value })}
                     className={inputCls(!!errors.school_name)}
                   />
+                </Field>
+                <Field label="District *" error={errors.district}>
+                  <select value={formData.district} onChange={(e) => setFormData({ ...formData, district: e.target.value, block: "" })} className={inputCls(!!errors.district)}>
+                    <option value="">Select District</option>
+                    {DISTRICTS.map((d) => (
+                      <option key={d} value={d}>
+                        {d}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+                <Field label="Block *" error={errors.block}>
+                  <select
+  value={formData.block}
+  onChange={(e) => setFormData({ ...formData, block: e.target.value })}
+  className={inputCls(!!errors.block)}
+  disabled={!formData.district}>
+
+                    <option value="">Select Block</option>
+                    {formData.district &&
+                      (DISTRICT_BLOCKS[formData.district as keyof typeof DISTRICT_BLOCKS] || []).map((b) => (
+                        <option key={b} value={b}>
+                          {b}
+                        </option>
+                      ))}
+                  </select>
                 </Field>
 
                 <Field label="Core Team Name *" error={errors.core_team_name}>

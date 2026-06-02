@@ -1,20 +1,26 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Search, Plus, Eye, Pencil, Trash2, X, MessageSquare, Link2, User, Users, CheckCircle, TrendingUp } from "lucide-react";
 import BackButton from "../../components/BackButton";
 
 type WhatsAppRecord = {
   id: number;
   school_name: string;
+  district?: string;
+  block?: string;
   group_link: string;
   group_admin: string;
   member_count: number;
   activity_status: string;
   last_msg_date: string;
   remarks: string;
-};
+  entered_by?: string;
+  entered_time?: string;
+};;
 
 type FormData = {
   school_name: string;
+  district: string;
+  block: string;
   group_link: string;
   group_admin: string;
   member_count: string;
@@ -25,6 +31,8 @@ type FormData = {
 
 const EMPTY_FORM: FormData = {
   school_name: "",
+  district: "",
+  block: "",
   group_link: "",
   group_admin: "",
   member_count: "",
@@ -35,6 +43,7 @@ const EMPTY_FORM: FormData = {
 
 export default function WhatsappEngagement() {
   const [search, setSearch] = useState("");
+  const [enteredByFilter, setEnteredByFilter] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
   const [viewItem, setViewItem] = useState<WhatsAppRecord | null>(null);
@@ -97,9 +106,19 @@ export default function WhatsappEngagement() {
     return defaultData;
   });
 
-  useEffect(() => {
-    localStorage.setItem('whatsapp_groups', JSON.stringify(data));
-  }, [data]);
+  const enteredByOptions = useMemo(() => {
+  const map = new Map<string, number>();
+  data.forEach(item => {
+    if (item.entered_by) {
+      map.set(item.entered_by, (map.get(item.entered_by) ?? 0) + 1);
+    }
+  });
+  return Array.from(map.entries()).map(([name, count]) => ({ name, count }));
+}, [data]);
+
+useEffect(() => {
+  localStorage.setItem('whatsapp_groups', JSON.stringify(data));
+}, [data]);
 
   const [formData, setFormData] = useState<FormData>(EMPTY_FORM);
   const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({});
@@ -107,6 +126,8 @@ export default function WhatsappEngagement() {
   const validate = () => {
     const e: Partial<Record<keyof FormData, string>> = {};
     if (!formData.school_name.trim()) e.school_name = "School name is required";
+    if (!formData.district.trim()) e.district = "District is required";
+    if (!formData.block.trim()) e.block = "Block is required";
     if (!formData.group_link.trim()) e.group_link = "WhatsApp group link is required";
     else if (!formData.group_link.includes("chat.whatsapp.com/")) e.group_link = "Must be a valid WhatsApp invite link";
     if (!formData.group_admin.trim()) e.group_admin = "Group admin/representative is required";
@@ -126,6 +147,8 @@ export default function WhatsappEngagement() {
   const openEdit = (item: WhatsAppRecord) => {
     setFormData({
       school_name: item.school_name,
+      district: item.district || "",
+      block: item.block || "",
       group_link: item.group_link,
       group_admin: item.group_admin,
       member_count: String(item.member_count),
@@ -147,6 +170,8 @@ export default function WhatsappEngagement() {
           ? {
               ...item,
               school_name: formData.school_name,
+              district: formData.district,
+              block: formData.block,
               group_link: formData.group_link,
               group_admin: formData.group_admin,
               member_count: Number(formData.member_count),
@@ -162,12 +187,16 @@ export default function WhatsappEngagement() {
         {
           id: Date.now(),
           school_name: formData.school_name,
+          district: formData.district,
+          block: formData.block,
           group_link: formData.group_link,
           group_admin: formData.group_admin,
           member_count: Number(formData.member_count),
           activity_status: formData.activity_status,
           last_msg_date: formData.last_msg_date,
           remarks: formData.remarks,
+          entered_by: currentUser?.name || 'Unknown',
+          entered_time: new Date().toLocaleString(),
         },
       ]);
     }
@@ -180,8 +209,9 @@ export default function WhatsappEngagement() {
   };
 
   const filteredData = data.filter((item) =>
-    item.school_name.toLowerCase().includes(search.toLowerCase()) ||
-    item.group_admin.toLowerCase().includes(search.toLowerCase())
+    (item.school_name.toLowerCase().includes(search.toLowerCase()) ||
+     item.group_admin.toLowerCase().includes(search.toLowerCase())) &&
+    (enteredByFilter ? (item.entered_by?.toLowerCase().includes(enteredByFilter.toLowerCase())) : true)
   );
 
   const totalMembers = data.reduce((sum, d) => sum + d.member_count, 0);
@@ -204,15 +234,13 @@ export default function WhatsappEngagement() {
             <span className="font-semibold text-slate-800 text-sm">WhatsApp Engagement</span>
           </div>
         </div>
-        {currentUser?.role !== 'employee' && (
-          <button
-            onClick={openAdd}
-            className="flex items-center gap-2 bg-green-600 hover:bg-green-700 active:scale-95 text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition-all shadow-sm shadow-green-200"
-          >
-            <Plus size={16} />
-            Register WhatsApp Group
-          </button>
-        )}
+        <button
+          onClick={openAdd}
+          className="flex items-center gap-2 bg-green-600 hover:bg-green-700 active:scale-95 text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition-all shadow-sm shadow-green-200"
+        >
+          <Plus size={16} />
+          Register WhatsApp Group
+        </button>
       </div>
 
       <div className="max-w-[1400px] mx-auto px-8 py-8">
@@ -274,6 +302,23 @@ export default function WhatsappEngagement() {
               <X size={16} />
             </button>
           )}
+          {/* Entered By Filter */}
+          <div className="w-px h-6 bg-slate-200" />
+          <select
+            value={enteredByFilter}
+            onChange={(e) => setEnteredByFilter(e.target.value)}
+            className="flex-1 bg-transparent text-sm text-slate-700 placeholder:text-slate-400 outline-none"
+          >
+            <option value="">All entered by</option>
+            {enteredByOptions.map(({ name, count }) => (
+              <option key={name} value={name}>{`${name} (${count})`}</option>
+            ))}
+          </select>
+          {enteredByFilter && (
+            <button onClick={() => setEnteredByFilter("")} className="text-slate-400 hover:text-slate-600">
+              <X size={16} />
+            </button>
+          )}
         </div>
 
         {/* Table */}
@@ -282,7 +327,7 @@ export default function WhatsappEngagement() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-slate-900 text-white">
-                  {["S.No", "School Name", "Group Link", "Group Admin", "Member Count", "Last Active Date", "Activity Status", "Actions"].map((h) => (
+                  {["S.No", "School Name", "District", "Block", "Group Link", "Group Admin", "Member Count", "Last Active Date", "Activity Status", "Entered By", "Actions"].map((h) => (
                     <th key={h} className="px-5 py-4 text-left font-semibold text-xs tracking-wider uppercase whitespace-nowrap">
                       {h}
                     </th>
@@ -292,7 +337,7 @@ export default function WhatsappEngagement() {
               <tbody>
                 {filteredData.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="px-5 py-16 text-center text-slate-400 text-sm">
+                    <td colSpan={11} className="px-5 py-16 text-center text-slate-400 text-sm">
                       No WhatsApp groups registered. Add one to get started.
                     </td>
                   </tr>
@@ -301,6 +346,8 @@ export default function WhatsappEngagement() {
                     <tr key={item.id} className="border-t border-slate-100 hover:bg-slate-50 transition-colors group">
                       <td className="px-5 py-4 text-slate-400 font-medium">{String(index + 1).padStart(2, "0")}</td>
                       <td className="px-5 py-4 font-semibold text-slate-800">{item.school_name}</td>
+                      <td className="px-5 py-4">{item.district}</td>
+                      <td className="px-5 py-4">{item.block}</td>
                       <td className="px-5 py-4">
                         <a
                           href={item.group_link}
@@ -335,6 +382,10 @@ export default function WhatsappEngagement() {
                           <CheckCircle size={12} />
                           {item.activity_status}
                         </span>
+                      </td>
+                      <td className="px-5 py-4">
+                        <div className="font-semibold text-slate-800 text-xs">{item.entered_by || 'Unknown'}</div>
+                        <div className="text-[10px] text-slate-400 font-medium">{item.entered_time || '—'}</div>
                       </td>
                       <td className="px-5 py-4">
                         <div className="flex items-center gap-2 opacity-60 group-hover:opacity-100 transition-opacity">
@@ -406,6 +457,32 @@ export default function WhatsappEngagement() {
                     onChange={(e) => setFormData({ ...formData, school_name: e.target.value })}
                     className={inputCls(!!errors.school_name)}
                   />
+                </Field>
+
+                <Field label="District *" error={errors.district}>
+                  <select
+                    value={formData.district}
+                    onChange={(e) => setFormData({ ...formData, district: e.target.value, block: "" })}
+                    className={inputCls(!!errors.district)}
+                  >
+                    <option value="">Select District</option>
+                    {DISTRICTS.map((d) => (
+                      <option key={d} value={d}>{d}</option>
+                    ))}
+                  </select>
+                </Field>
+
+                <Field label="Block *" error={errors.block}>
+                  <select
+                    value={formData.block}
+                    onChange={(e) => setFormData({ ...formData, block: e.target.value })}
+                    className={inputCls(!!errors.block)}
+                  >
+                    <option value="">Select Block</option>
+                    {(DISTRICT_BLOCKS[formData.district] || []).map((b) => (
+                      <option key={b} value={b}>{b}</option>
+                    ))}
+                  </select>
                 </Field>
 
                 <Field label="WhatsApp Invite Link *" error={errors.group_link}>
@@ -506,6 +583,8 @@ export default function WhatsappEngagement() {
             <div className="p-6 space-y-4">
               {[
                 ["School Name", viewItem.school_name],
+                ["District", viewItem.district || "—"],
+                ["Block", viewItem.block || "—"],
                 ["Group Link", viewItem.group_link],
                 ["Group Admin", viewItem.group_admin],
                 ["Member Count", `${viewItem.member_count} members`],

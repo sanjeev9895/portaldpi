@@ -7,9 +7,23 @@ import {
   useNavigate,
 } from 'react-router-dom';
 
+import { useState, useEffect } from 'react';
+
 export default function Navbar() {
 
   const navigate = useNavigate();
+  const [user, setUser] = useState<any>(null);
+
+  useEffect(() => {
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      try {
+        setUser(JSON.parse(userStr));
+      } catch (e) {
+        console.error(e);
+      }
+    }
+  }, []);
 
   return (
 
@@ -63,7 +77,10 @@ export default function Navbar() {
         </button>
 
         {/* Profile */}
-        <div className="flex items-center gap-3 bg-slate-100 px-3 py-2 rounded-2xl cursor-pointer hover:bg-slate-200 transition">
+        <div 
+          onClick={() => navigate('/profile-settings')}
+          className="flex items-center gap-3 bg-slate-100 px-3 py-2 rounded-2xl cursor-pointer hover:bg-slate-200 transition"
+        >
 
           <img
             src="/vizhuthugal.png"
@@ -74,11 +91,11 @@ export default function Navbar() {
           <div className="hidden sm:block">
 
             <h2 className="text-sm font-semibold text-slate-800">
-               State Admin
+               {user?.name || 'State Admin'}
             </h2>
 
-            <p className="text-xs text-slate-500">
-             Alumni Connect
+            <p className="text-xs text-slate-500 capitalize">
+             {user?.role || 'admin'}
             </p>
 
           </div>

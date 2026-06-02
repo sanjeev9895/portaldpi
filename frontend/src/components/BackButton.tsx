@@ -15,9 +15,13 @@ export default function BackButton() {
 
     <button
 
-      onClick={() =>
-      navigate(-1)  
-        }
+        onClick={() => {
+          if (window.history.length > 2) {
+            navigate(-1);
+          } else {
+            navigate('/', { replace: true });
+          }
+        }}
 
       className="flex items-center gap-2 bg-white hover:bg-slate-100 transition border border-slate-200 shadow-sm px-5 h-12 rounded-2xl text-slate-700 font-semibold"
     >

@@ -1,19 +1,29 @@
 import { useState, useEffect } from "react";
-import { Search, Plus, Eye, Pencil, Trash2, X, Users, School, CheckCircle, XCircle, Upload } from "lucide-react";
+import {
+  Search, Plus, Eye, Pencil, Trash2, X, Users, School,
+  CheckCircle, XCircle, Upload, ArrowLeft, ChevronDown
+} from "lucide-react";
+import { DISTRICTS, DISTRICT_BLOCKS } from "../../utils/districtData";
 
 type SchoolCommunityRecord = {
   id: number;
   school_name: string;
+  district?: string;
+  block?: string;
   whatsapp_group: string;
   mobilization: string;
   members: number;
   proof: string | File | null;
   platform: string;
   remarks: string;
+  entered_by?: string;
+  entered_time?: string;
 };
 
 type FormData = {
   school_name: string;
+  district: string;
+  block: string;
   whatsapp_group: string;
   mobilization: string;
   members: string;
@@ -24,6 +34,8 @@ type FormData = {
 
 const EMPTY_FORM: FormData = {
   school_name: "",
+  district: "",
+  block: "",
   whatsapp_group: "",
   mobilization: "Yes",
   members: "",
@@ -34,14 +46,15 @@ const EMPTY_FORM: FormData = {
 
 export default function SchoolCommunity() {
   const [search, setSearch] = useState("");
+  const [enteredByFilter, setEnteredByFilter] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
   const [viewItem, setViewItem] = useState<SchoolCommunityRecord | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
   const [currentUser, setCurrentUser] = useState<any>(null);
 
-  useState(() => {
-    const userStr = localStorage.getItem('user');
+  useEffect(() => {
+    const userStr = localStorage.getItem("user");
     if (userStr) {
       try {
         setCurrentUser(JSON.parse(userStr));
@@ -49,10 +62,10 @@ export default function SchoolCommunity() {
         console.error(e);
       }
     }
-  });
+  }, []);
 
   const [data, setData] = useState<SchoolCommunityRecord[]>(() => {
-    const saved = localStorage.getItem('school_communities');
+    const saved = localStorage.getItem("school_communities");
     if (saved) {
       try {
         return JSON.parse(saved);
@@ -60,10 +73,12 @@ export default function SchoolCommunity() {
         console.error(e);
       }
     }
-    const defaultData = [
+    const defaultData: SchoolCommunityRecord[] = [
       {
         id: 1,
         school_name: "Govt Hr Sec School",
+        district: "Madurai",
+        block: "Madurai East",
         whatsapp_group: "GHSS Alumni 2025",
         mobilization: "Yes",
         members: 650,
@@ -74,6 +89,8 @@ export default function SchoolCommunity() {
       {
         id: 2,
         school_name: "St. Joseph's Hr Sec School",
+        district: "Tiruchirappalli",
+        block: "Thiruverumbur",
         whatsapp_group: "SJS Alumni Network",
         mobilization: "Yes",
         members: 820,
@@ -84,6 +101,8 @@ export default function SchoolCommunity() {
       {
         id: 3,
         school_name: "Anna Matriculation School",
+        district: "Salem",
+        block: "Salem",
         whatsapp_group: "Anna Matric Old Boys",
         mobilization: "No",
         members: 510,
@@ -92,12 +111,12 @@ export default function SchoolCommunity() {
         remarks: "Pending verification",
       },
     ];
-    localStorage.setItem('school_communities', JSON.stringify(defaultData));
+    localStorage.setItem("school_communities", JSON.stringify(defaultData));
     return defaultData;
   });
 
   useEffect(() => {
-    localStorage.setItem('school_communities', JSON.stringify(data));
+    localStorage.setItem("school_communities", JSON.stringify(data));
   }, [data]);
 
   const [formData, setFormData] = useState<FormData>(EMPTY_FORM);
@@ -106,9 +125,11 @@ export default function SchoolCommunity() {
   const validate = () => {
     const e: Partial<Record<keyof FormData, string>> = {};
     if (!formData.school_name.trim()) e.school_name = "School name is required";
+    if (!formData.district.trim()) e.district = "District is required";
+    if (!formData.block.trim()) e.block = "Block is required";
     if (!formData.members) e.members = "Members count is required";
     else if (Number(formData.members) < 500) e.members = "Must be 500 or more";
-    if (!formData.platform.trim()) e.platform = "Platform is required";
+    if (!formData.platform.trim()) e.platform = "Celebrated Platform is required";
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -123,6 +144,8 @@ export default function SchoolCommunity() {
   const openEdit = (item: SchoolCommunityRecord) => {
     setFormData({
       school_name: item.school_name,
+      district: item.district || "",
+      block: item.block || "",
       whatsapp_group: item.whatsapp_group,
       mobilization: item.mobilization,
       members: String(item.members),
@@ -139,32 +162,40 @@ export default function SchoolCommunity() {
     if (!validate()) return;
 
     if (editId !== null) {
-      setData(data.map((item) =>
-        item.id === editId
-          ? {
-              ...item,
-              school_name: formData.school_name,
-              whatsapp_group: formData.whatsapp_group,
-              mobilization: formData.mobilization,
-              members: Number(formData.members),
-              proof: formData.proof ?? item.proof,
-              platform: formData.platform,
-              remarks: formData.remarks,
-            }
-          : item
-      ));
+      setData(
+        data.map((item) =>
+          item.id === editId
+            ? {
+                ...item,
+                school_name: formData.school_name,
+                district: formData.district,
+                block: formData.block,
+                whatsapp_group: formData.whatsapp_group,
+                mobilization: formData.mobilization,
+                members: Number(formData.members),
+                proof: formData.proof ?? item.proof,
+                platform: formData.platform,
+                remarks: formData.remarks,
+              }
+            : item
+        )
+      );
     } else {
       setData([
         ...data,
         {
           id: Date.now(),
           school_name: formData.school_name,
+          district: formData.district,
+          block: formData.block,
           whatsapp_group: formData.whatsapp_group,
           mobilization: formData.mobilization,
           members: Number(formData.members),
           proof: formData.proof,
           platform: formData.platform,
           remarks: formData.remarks,
+          entered_by: currentUser?.name || 'Unknown',
+          entered_time: new Date().toLocaleString(),
         },
       ]);
     }
@@ -177,22 +208,33 @@ export default function SchoolCommunity() {
   };
 
   const filteredData = data.filter((item) =>
-    item.school_name.toLowerCase().includes(search.toLowerCase())
+    item.school_name.toLowerCase().includes(search.toLowerCase()) &&
+    (enteredByFilter ? (item.entered_by?.toLowerCase().includes(enteredByFilter.toLowerCase())) : true)
   );
 
   const totalMembers = data.reduce((sum, d) => sum + d.members, 0);
   const mobilizedCount = data.filter((d) => d.mobilization === "Yes").length;
 
   return (
-    
     <div
       style={{ fontFamily: "'DM Sans', 'Segoe UI', sans-serif" }}
       className="min-h-screen bg-[#f0f4f9]"
     >
-      {/* Top Header Bar */}
-      <div className="bg-white border-b border-slate-200 px-8 py-4 flex items-center justify-between sticky top-0 z-30">
+      {/* ===== TOP HEADER BAR ===== */}
+      <div className="bg-white border-b border-slate-200 px-8 py-4 flex items-center justify-between sticky top-0 z-30 shadow-sm">
         <div className="flex items-center gap-4">
-          
+
+          {/* ✅ BACK BUTTON */}
+          <button
+            onClick={() => window.history.back()}
+            className="flex items-center gap-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 px-3 py-2 rounded-xl transition-all text-sm font-semibold"
+          >
+            <ArrowLeft size={16} />
+            Back
+          </button>
+
+          <div className="h-5 w-px bg-slate-200" />
+
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center">
               <School size={16} className="text-white" />
@@ -200,26 +242,25 @@ export default function SchoolCommunity() {
             <span className="font-semibold text-slate-800 text-sm">School Community</span>
           </div>
         </div>
-        {currentUser?.role !== 'employee' && (
-          <button
-            onClick={openAdd}
-            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition-all shadow-sm shadow-blue-200"
-          >
-            <Plus size={16} />
-            Add School Community
-          </button>
-        )}
+
+        <button
+          onClick={openAdd}
+          className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition-all shadow-sm shadow-blue-200"
+        >
+          <Plus size={16} />
+          Add School Community
+        </button>
       </div>
 
       <div className="max-w-[1400px] mx-auto px-8 py-8">
 
-        {/* Page Title */}
+        {/* PAGE TITLE */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Alumni Community Dashboard</h1>
           <p className="text-slate-500 mt-1 text-sm">Manage and track school alumni communities across platforms.</p>
         </div>
 
-        {/* Stats Row */}
+        {/* STATS ROW */}
         <div className="grid grid-cols-3 gap-5 mb-8">
           {[
             {
@@ -244,7 +285,10 @@ export default function SchoolCommunity() {
               accent: "text-violet-600",
             },
           ].map((stat) => (
-            <div key={stat.label} className="bg-white rounded-2xl px-6 py-5 border border-slate-200 flex items-center gap-4 shadow-sm">
+            <div
+              key={stat.label}
+              className="bg-white rounded-2xl px-6 py-5 border border-slate-200 flex items-center gap-4 shadow-sm"
+            >
               <div className={`w-12 h-12 rounded-xl ${stat.bg} flex items-center justify-center flex-shrink-0`}>
                 {stat.icon}
               </div>
@@ -255,32 +299,68 @@ export default function SchoolCommunity() {
             </div>
           ))}
         </div>
-
-        {/* Search */}
-        <div className="bg-white rounded-2xl border border-slate-200 px-5 py-4 mb-5 flex items-center gap-3 shadow-sm">
-          <Search size={18} className="text-slate-400 flex-shrink-0" />
-          <input
-            type="text"
-            placeholder="Search by school name..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="flex-1 bg-transparent text-sm text-slate-700 placeholder:text-slate-400 outline-none"
-          />
-          {search && (
-            <button onClick={() => setSearch("")} className="text-slate-400 hover:text-slate-600">
-              <X size={16} />
-            </button>
-          )}
+        {/* Search & Filter */}
+        <div className="flex items-center gap-4 mb-5">
+          {/* Search */}
+          <div className="bg-white rounded-2xl border border-slate-200 px-5 py-4 flex-1 flex items-center gap-3 shadow-sm">
+            <Search size={18} className="text-slate-400 flex-shrink-0" />
+            <input
+              type="text"
+              placeholder="Search by school name..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="flex-1 bg-transparent text-sm text-slate-700 placeholder:text-slate-400 outline-none"
+            />
+            {search && (
+              <button onClick={() => setSearch("")} className="text-slate-400 hover:text-slate-600">
+                <X size={16} />
+              </button>
+            )}
+          </div>
+          {/* Entered By Filter */}
+          <div className="bg-white rounded-2xl border border-slate-200 px-5 py-4 flex items-center gap-3 shadow-sm">
+            <select
+              value={enteredByFilter}
+              onChange={(e) => setEnteredByFilter(e.target.value)}
+              className="flex-1 bg-transparent text-sm text-slate-700 placeholder:text-slate-400 outline-none"
+            >
+              <option value="">All entered by</option>
+              {Array.from(new Set(data.map(item => item.entered_by).filter(Boolean))).map(name => (
+                <option key={name} value={name}>{name}</option>
+              ))}
+            </select>
+            {enteredByFilter && (
+              <button onClick={() => setEnteredByFilter("")} className="text-slate-400 hover:text-slate-600">
+                <X size={16} />
+              </button>
+            )}
+          </div>
         </div>
 
-        {/* Table */}
+        {/* TABLE */}
         <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-slate-900 text-white">
-                  {["S.No", "School Name", "WhatsApp Group", "Mobilization", "Members", "Proof", "Platform", "Remarks", "Actions"].map((h) => (
-                    <th key={h} className="px-5 py-4 text-left font-semibold text-xs tracking-wider uppercase whitespace-nowrap">
+                  {[
+                    "S.No",
+                    "School Name",
+                    "District Name",
+                    "Block Name",
+                    "WhatsApp Group",
+                    "Mobilization",
+                    "Members",
+                    "Proof",
+                    "Celebrated Platform",
+                    "Remarks",
+                    "Actions",
+                    "Entered By",
+                  ].map((h) => (
+                    <th
+                      key={h}
+                      className="px-5 py-4 text-left font-semibold text-xs tracking-wider uppercase whitespace-nowrap"
+                    >
                       {h}
                     </th>
                   ))}
@@ -289,23 +369,42 @@ export default function SchoolCommunity() {
               <tbody>
                 {filteredData.length === 0 ? (
                   <tr>
-                    <td colSpan={9} className="px-5 py-16 text-center text-slate-400 text-sm">
+                    <td colSpan={12} className="px-5 py-16 text-center text-slate-400 text-sm">
                       No schools found. Add one to get started.
                     </td>
                   </tr>
                 ) : (
                   filteredData.map((item, index) => (
-                    <tr key={item.id} className="border-t border-slate-100 hover:bg-slate-50 transition-colors group">
-                      <td className="px-5 py-4 text-slate-400 font-medium">{String(index + 1).padStart(2, "0")}</td>
+                    <tr
+                      key={item.id}
+                      className="border-t border-slate-100 hover:bg-slate-50 transition-colors group"
+                    >
+                      <td className="px-5 py-4 text-slate-400 font-medium">
+                        {String(index + 1).padStart(2, "0")}
+                      </td>
                       <td className="px-5 py-4 font-semibold text-slate-800">{item.school_name}</td>
-                      <td className="px-5 py-4 text-slate-600">{item.whatsapp_group || <span className="text-slate-300">—</span>}</td>
+                      <td className="px-5 py-4 text-slate-600 font-medium">
+                        {item.district || <span className="text-slate-300">—</span>}
+                      </td>
+                      <td className="px-5 py-4 text-slate-600 font-medium">
+                        {item.block || <span className="text-slate-300">—</span>}
+                      </td>
+                      <td className="px-5 py-4 text-slate-600">
+                        {item.whatsapp_group || <span className="text-slate-300">—</span>}
+                      </td>
                       <td className="px-5 py-4">
-                        <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${
-                          item.mobilization === "Yes"
-                            ? "bg-emerald-50 text-emerald-700"
-                            : "bg-red-50 text-red-600"
-                        }`}>
-                          {item.mobilization === "Yes" ? <CheckCircle size={12} /> : <XCircle size={12} />}
+                        <span
+                          className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${
+                            item.mobilization === "Yes"
+                              ? "bg-emerald-50 text-emerald-700"
+                              : "bg-red-50 text-red-600"
+                          }`}
+                        >
+                          {item.mobilization === "Yes" ? (
+                            <CheckCircle size={12} />
+                          ) : (
+                            <XCircle size={12} />
+                          )}
                           {item.mobilization}
                         </span>
                       </td>
@@ -325,10 +424,16 @@ export default function SchoolCommunity() {
                       </td>
                       <td className="px-5 py-4">
                         {item.platform ? (
-                          <span className="bg-slate-100 text-slate-700 px-2.5 py-1 rounded-lg text-xs font-medium">{item.platform}</span>
-                        ) : <span className="text-slate-300">—</span>}
+                          <span className="bg-slate-100 text-slate-700 px-2.5 py-1 rounded-lg text-xs font-medium">
+                            {item.platform}
+                          </span>
+                        ) : (
+                          <span className="text-slate-300">—</span>
+                        )}
                       </td>
-                      <td className="px-5 py-4 text-slate-500 max-w-[160px] truncate">{item.remarks || <span className="text-slate-300">—</span>}</td>
+                      <td className="px-5 py-4 text-slate-500 max-w-[160px] truncate">
+                        {item.remarks || <span className="text-slate-300">—</span>}
+                      </td>
                       <td className="px-5 py-4">
                         <div className="flex items-center gap-2 opacity-60 group-hover:opacity-100 transition-opacity">
                           <button
@@ -338,7 +443,7 @@ export default function SchoolCommunity() {
                           >
                             <Eye size={14} className="text-slate-600" />
                           </button>
-                          {currentUser?.role !== 'employee' && (
+                          {currentUser?.role !== "employee" && (
                             <>
                               <button
                                 onClick={() => openEdit(item)}
@@ -358,6 +463,10 @@ export default function SchoolCommunity() {
                           )}
                         </div>
                       </td>
+                      <td className="px-5 py-4">
+                        <div className="font-semibold text-slate-800 text-xs">{item.entered_by || 'Unknown'}</div>
+                        <div className="text-[10px] text-slate-400 font-medium">{item.entered_time || '—'}</div>
+                      </td>
                     </tr>
                   ))
                 )}
@@ -370,15 +479,18 @@ export default function SchoolCommunity() {
         </div>
       </div>
 
-      {/* Add / Edit Modal */}
+      {/* ===== ADD / EDIT MODAL ===== */}
       {showModal && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden">
+
             {/* Modal Header */}
             <div className="bg-slate-900 px-7 py-5 flex items-center justify-between">
               <div>
-                <h2 className="text-white font-bold text-lg">{editId ? "Edit" : "Add"} School Community</h2>
-                <p className="text-slate-400 text-xs mt-0.5">Fill in the details below</p>
+                <h2 className="text-white font-bold text-lg">
+                  {editId ? "Edit" : "Add"} School Community
+                </h2>
+                <p className="text-slate-400 text-xs mt-0.5">Fill in all the details below</p>
               </div>
               <button
                 onClick={() => setShowModal(false)}
@@ -388,10 +500,11 @@ export default function SchoolCommunity() {
               </button>
             </div>
 
-            {/* Modal Body */}
+            {/* Modal Body — all 7 fields matching table columns */}
             <div className="px-7 py-6 overflow-y-auto max-h-[70vh]">
               <div className="grid grid-cols-2 gap-x-5 gap-y-5">
 
+                {/* School Name */}
                 <Field label="School Name *" error={errors.school_name}>
                   <input
                     type="text"
@@ -402,6 +515,48 @@ export default function SchoolCommunity() {
                   />
                 </Field>
 
+                {/* District Name */}
+                <Field label="District Name *" error={errors.district}>
+                  <div className="relative">
+                    <select
+                      value={formData.district}
+                      onChange={(e) => setFormData({ ...formData, district: e.target.value, block: "" })}
+                      className={inputCls(!!errors.district) + " appearance-none pr-9 cursor-pointer"}
+                    >
+                      <option value="">Select district</option>
+                      {DISTRICTS.map(d => (
+                        <option key={d} value={d}>{d}</option>
+                      ))}
+                    </select>
+                    <ChevronDown
+                      size={15}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+                    />
+                  </div>
+                </Field>
+
+                {/* Block Name */}
+                <Field label="Block Name *" error={errors.block}>
+                  <div className="relative">
+                    <select
+                      value={formData.block}
+                      onChange={(e) => setFormData({ ...formData, block: e.target.value })}
+                      className={inputCls(!!errors.block) + " appearance-none pr-9 cursor-pointer"}
+                      disabled={!formData.district}
+                    >
+                      <option value="">{formData.district ? "Select block" : "Select district first"}</option>
+                      {formData.district && DISTRICT_BLOCKS[formData.district]?.map(b => (
+                        <option key={b} value={b}>{b}</option>
+                      ))}
+                    </select>
+                    <ChevronDown
+                      size={15}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+                    />
+                  </div>
+                </Field>
+
+                {/* WhatsApp Group */}
                 <Field label="WhatsApp Group Name">
                   <input
                     type="text"
@@ -412,17 +567,25 @@ export default function SchoolCommunity() {
                   />
                 </Field>
 
+                {/* Alumni Mobilization */}
                 <Field label="Alumni Mobilization">
-                  <select
-                    value={formData.mobilization}
-                    onChange={(e) => setFormData({ ...formData, mobilization: e.target.value })}
-                    className={inputCls(false)}
-                  >
-                    <option value="Yes">Yes</option>
-                    <option value="No">No</option>
-                  </select>
+                  <div className="relative">
+                    <select
+                      value={formData.mobilization}
+                      onChange={(e) => setFormData({ ...formData, mobilization: e.target.value })}
+                      className={inputCls(false) + " appearance-none pr-9 cursor-pointer"}
+                    >
+                      <option value="Yes">Yes</option>
+                      <option value="No">No</option>
+                    </select>
+                    <ChevronDown
+                      size={15}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+                    />
+                  </div>
                 </Field>
 
+                {/* Members Count */}
                 <Field label="Members Count *" error={errors.members}>
                   <input
                     type="number"
@@ -434,19 +597,32 @@ export default function SchoolCommunity() {
                   />
                 </Field>
 
+                {/* Platform */}
                 <Field label="Celebrated Platform *" error={errors.platform}>
-                  <input
-                    type="text"
-                    placeholder="e.g. WhatsApp, Telegram"
-                    value={formData.platform}
-                    onChange={(e) => setFormData({ ...formData, platform: e.target.value })}
-                    className={inputCls(!!errors.platform)}
-                  />
+                  <div className="relative">
+                    <select
+                      value={formData.platform}
+                      onChange={(e) => setFormData({ ...formData, platform: e.target.value })}
+                      className={inputCls(!!errors.platform) + " appearance-none pr-9 cursor-pointer"}
+                    >
+                      <option value="">Select celebrated platform</option>
+                      <option value="WhatsApp">WhatsApp</option>
+                      <option value="Telegram">Telegram</option>
+                      <option value="Facebook">Facebook</option>
+                      <option value="Instagram">Instagram</option>
+                      <option value="Other">Other</option>
+                    </select>
+                    <ChevronDown
+                      size={15}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+                    />
+                  </div>
                 </Field>
 
+                {/* Upload Proof */}
                 <Field label="Upload Proof (Image / PDF)">
                   <label className="flex items-center gap-3 border border-dashed border-slate-300 rounded-xl p-3 cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-colors">
-                    <Upload size={16} className="text-slate-400" />
+                    <Upload size={16} className="text-slate-400 flex-shrink-0" />
                     <span className="text-sm text-slate-500 truncate">
                       {formData.proof ? (formData.proof as File).name : "Choose file..."}
                     </span>
@@ -454,7 +630,9 @@ export default function SchoolCommunity() {
                       type="file"
                       accept="image/*,.pdf"
                       className="hidden"
-                      onChange={(e) => setFormData({ ...formData, proof: e.target.files?.[0] || null })}
+                      onChange={(e) =>
+                        setFormData({ ...formData, proof: e.target.files?.[0] || null })
+                      }
                     />
                   </label>
                   {formData.proof && (formData.proof as File).type?.startsWith("image/") && (
@@ -466,6 +644,7 @@ export default function SchoolCommunity() {
                   )}
                 </Field>
 
+                {/* Remarks — full width */}
                 <div className="col-span-2">
                   <Field label="Remarks">
                     <textarea
@@ -500,34 +679,47 @@ export default function SchoolCommunity() {
         </div>
       )}
 
-      {/* View Modal */}
+      {/* ===== VIEW MODAL ===== */}
       {viewItem && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden">
             <div className="bg-slate-900 px-6 py-5 flex items-center justify-between">
               <h2 className="text-white font-bold">Community Details</h2>
-              <button onClick={() => setViewItem(null)} className="w-8 h-8 rounded-xl bg-slate-700 hover:bg-slate-600 flex items-center justify-center">
+              <button
+                onClick={() => setViewItem(null)}
+                className="w-8 h-8 rounded-xl bg-slate-700 hover:bg-slate-600 flex items-center justify-center"
+              >
                 <X size={15} className="text-white" />
               </button>
             </div>
             <div className="p-6 space-y-4">
-              {[
-                ["School Name", viewItem.school_name],
-                ["WhatsApp Group", viewItem.whatsapp_group || "—"],
-                ["Mobilization", viewItem.mobilization],
-                ["Members", `${viewItem.members.toLocaleString()}+`],
-                ["Platform", viewItem.platform || "—"],
-                ["Remarks", viewItem.remarks || "—"],
-              ].map(([label, value]) => (
+              {(
+                [
+                  ["School Name", viewItem.school_name],
+                  ["District Name", viewItem.district || "—"],
+                  ["Block Name", viewItem.block || "—"],
+                  ["WhatsApp Group", viewItem.whatsapp_group || "—"],
+                  ["Mobilization", viewItem.mobilization],
+                  ["Members", `${viewItem.members.toLocaleString()}+`],
+                  ["Celebrated Platform", viewItem.platform || "—"],
+                  ["Remarks", viewItem.remarks || "—"],
+                ] as [string, string][]
+              ).map(([label, value]) => (
                 <div key={label} className="flex justify-between items-start gap-4">
-                  <span className="text-xs font-semibold text-slate-400 uppercase tracking-wide w-32 flex-shrink-0">{label}</span>
+                  <span className="text-xs font-semibold text-slate-400 uppercase tracking-wide w-36 flex-shrink-0">
+                    {label}
+                  </span>
                   <span className="text-sm text-slate-700 font-medium text-right">{value}</span>
                 </div>
               ))}
               {viewItem.proof && (
                 <div className="flex justify-between items-start gap-4">
-                  <span className="text-xs font-semibold text-slate-400 uppercase tracking-wide w-32 flex-shrink-0">Proof</span>
-                  <span className="inline-flex items-center gap-1.5 text-emerald-600 text-sm font-medium"><Eye size={13} /> File Uploaded</span>
+                  <span className="text-xs font-semibold text-slate-400 uppercase tracking-wide w-36 flex-shrink-0">
+                    Proof
+                  </span>
+                  <span className="inline-flex items-center gap-1.5 text-emerald-600 text-sm font-medium">
+                    <Eye size={13} /> File Uploaded
+                  </span>
                 </div>
               )}
             </div>
@@ -543,7 +735,7 @@ export default function SchoolCommunity() {
         </div>
       )}
 
-      {/* Delete Confirm */}
+      {/* ===== DELETE CONFIRM ===== */}
       {deleteConfirm !== null && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white w-full max-w-sm rounded-3xl shadow-2xl p-7 text-center">
@@ -551,7 +743,9 @@ export default function SchoolCommunity() {
               <Trash2 size={24} className="text-red-500" />
             </div>
             <h3 className="font-bold text-slate-800 text-lg">Delete Record?</h3>
-            <p className="text-slate-500 text-sm mt-2 mb-6">This action cannot be undone. The community record will be permanently removed.</p>
+            <p className="text-slate-500 text-sm mt-2 mb-6">
+              This action cannot be undone. The community record will be permanently removed.
+            </p>
             <div className="flex gap-3">
               <button
                 onClick={() => setDeleteConfirm(null)}
@@ -573,11 +767,24 @@ export default function SchoolCommunity() {
   );
 }
 
-// Helper components
-function Field({ label, error, children }: { label: string; error?: string; children: React.ReactNode }) {
+/* ===================================== */
+/* HELPER COMPONENTS */
+/* ===================================== */
+
+function Field({
+  label,
+  error,
+  children,
+}: {
+  label: string;
+  error?: string;
+  children: React.ReactNode;
+}) {
   return (
     <div>
-      <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">{label}</label>
+      <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">
+        {label}
+      </label>
       {children}
       {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
     </div>
@@ -585,5 +792,7 @@ function Field({ label, error, children }: { label: string; error?: string; chil
 }
 
 function inputCls(hasError: boolean) {
-  return `w-full border ${hasError ? "border-red-400 bg-red-50" : "border-slate-200"} rounded-xl px-3.5 py-2.5 text-sm text-slate-700 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-all placeholder:text-slate-300`;
+  return `w-full border ${
+    hasError ? "border-red-400 bg-red-50" : "border-slate-200"
+  } rounded-xl px-3.5 py-2.5 text-sm text-slate-700 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-all placeholder:text-slate-300`;
 }

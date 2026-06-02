@@ -1,6 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Search, Plus, Eye, Pencil, Trash2, X, Users, CheckCircle, XCircle, Upload, Image as ImageIcon } from "lucide-react";
 import BackButton from "../../components/BackButton";
+import { DISTRICTS, DISTRICT_BLOCKS } from "../../utils/districtData";
 
 type CoreEngagementRecord = {
   id: number;
@@ -9,6 +10,10 @@ type CoreEngagementRecord = {
   activity: string;
   proof: string | File | null;
   remarks: string;
+  district?: string;
+  block?: string;
+  entered_by?: string;
+  entered_time?: string;
 };
 
 type FormData = {
@@ -17,6 +22,8 @@ type FormData = {
   activity: string;
   proof: File | null;
   remarks: string;
+  district: string;
+  block: string;
 };
 
 const EMPTY_FORM: FormData = {
@@ -25,27 +32,12 @@ const EMPTY_FORM: FormData = {
   activity: "",
   proof: null,
   remarks: "",
+  district: "",
+  block: "",
 };
 
 export default function CoreEngagement() {
   const [search, setSearch] = useState("");
-  const [showModal, setShowModal] = useState(false);
-  const [editId, setEditId] = useState<number | null>(null);
-  const [viewItem, setViewItem] = useState<CoreEngagementRecord | null>(null);
-  const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
-  const [currentUser, setCurrentUser] = useState<any>(null);
-
-  useState(() => {
-    const userStr = localStorage.getItem('user');
-    if (userStr) {
-      try {
-        setCurrentUser(JSON.parse(userStr));
-      } catch (e) {
-        console.error(e);
-      }
-    }
-  });
-
   const [data, setData] = useState<CoreEngagementRecord[]>(() => {
     const saved = localStorage.getItem('core_engagements');
     if (saved) {
@@ -84,6 +76,30 @@ export default function CoreEngagement() {
     localStorage.setItem('core_engagements', JSON.stringify(defaultData));
     return defaultData;
   });
+  const [enteredByFilter, setEnteredByFilter] = useState("");
+  const enteredByOptions = useMemo(() => {
+    const map = new Map<string, number>();
+    data.forEach(item => {
+      if (item.entered_by) {
+        map.set(item.entered_by, (map.get(item.entered_by) ?? 0) + 1);
+      }
+    });
+    return Array.from(map.entries()).map(([name, count]) => ({ name, count }));
+  }, [data]);
+  const [currentUser, setCurrentUser] = useState<any>(null);
+
+  useState(() => {
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      try {
+        setCurrentUser(JSON.parse(userStr));
+      } catch (e) {
+        console.error(e);
+      }
+    }
+  });
+
+
 
   useEffect(() => {
     localStorage.setItem('core_engagements', JSON.stringify(data));
@@ -91,11 +107,17 @@ export default function CoreEngagement() {
 
   const [formData, setFormData] = useState<FormData>(EMPTY_FORM);
   const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({});
+  const [editId, setEditId] = useState<number | null>(null);
+  const [showModal, setShowModal] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
+  const [viewItem, setViewItem] = useState<CoreEngagementRecord | null>(null);
 
   const validate = () => {
     const e: Partial<Record<keyof FormData, string>> = {};
     if (!formData.core_team_name.trim()) e.core_team_name = "Core team name is required";
     if (!formData.activity.trim()) e.activity = "Activity detail is required";
+  if (!formData.district.trim()) e.district = "District is required";
+  if (!formData.block.trim()) e.block = "Block is required";
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -109,12 +131,14 @@ export default function CoreEngagement() {
 
   const openEdit = (item: CoreEngagementRecord) => {
     setFormData({
-      core_team_name: item.core_team_name,
-      team_formation_done: item.team_formation_done,
-      activity: item.activity,
-      proof: null,
-      remarks: item.remarks,
-    });
+    core_team_name: item.core_team_name,
+    team_formation_done: item.team_formation_done,
+    activity: item.activity,
+    proof: null,
+    remarks: item.remarks,
+    district: item.district || "",
+    block: item.block || "",
+  });
     setErrors({});
     setEditId(item.id);
     setShowModal(true);
@@ -133,20 +157,26 @@ export default function CoreEngagement() {
               activity: formData.activity,
               proof: formData.proof ?? item.proof,
               remarks: formData.remarks,
+              district: formData.district,
+              block: formData.block,
             }
           : item
       ));
     } else {
       setData([
         ...data,
-        {
-          id: Date.now(),
-          core_team_name: formData.core_team_name,
-          team_formation_done: formData.team_formation_done,
-          activity: formData.activity,
-          proof: formData.proof,
-          remarks: formData.remarks,
-        },
+          {
+            id: Date.now(),
+            core_team_name: formData.core_team_name,
+            team_formation_done: formData.team_formation_done,
+            activity: formData.activity,
+            proof: formData.proof,
+            remarks: formData.remarks,
+            district: formData.district,
+            block: formData.block,
+            entered_by: currentUser?.name || 'Unknown',
+            entered_time: new Date().toLocaleString(),
+          },
       ]);
     }
     setShowModal(false);
@@ -158,9 +188,10 @@ export default function CoreEngagement() {
   };
 
   const filteredData = data.filter((item) =>
-    item.core_team_name.toLowerCase().includes(search.toLowerCase()) ||
-    item.activity.toLowerCase().includes(search.toLowerCase())
-  );
+  (item.core_team_name.toLowerCase().includes(search.toLowerCase()) ||
+   item.activity.toLowerCase().includes(search.toLowerCase())) &&
+  (enteredByFilter ? (item.entered_by?.toLowerCase().includes(enteredByFilter.toLowerCase())) : true)
+);
 
   const activeCount = data.filter((d) => d.team_formation_done === "Yes").length;
 
@@ -181,15 +212,13 @@ export default function CoreEngagement() {
             <span className="font-semibold text-slate-800 text-sm">Alumni Core Engagement</span>
           </div>
         </div>
-        {currentUser?.role !== 'employee' && (
-          <button
-            onClick={openAdd}
-            className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition-all shadow-sm shadow-emerald-200 animate-fade-in"
-          >
-            <Plus size={16} />
-            Add Engagement
-          </button>
-        )}
+        <button
+          onClick={openAdd}
+          className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition-all shadow-sm shadow-emerald-200 animate-fade-in"
+        >
+          <Plus size={16} />
+          Add Engagement
+        </button>
       </div>
 
       <div className="max-w-[1400px] mx-auto px-8 py-8">
@@ -229,8 +258,10 @@ export default function CoreEngagement() {
           ))}
         </div>
 
-        {/* Search */}
-        <div className="bg-white rounded-2xl border border-slate-200 px-5 py-4 mb-5 flex items-center gap-3 shadow-sm">
+      {/* Search and Filter Section */}
+      <div className="flex flex-col md:flex-row md:items-center gap-4 mb-4">
+        {/* Search Bar */}
+        <div className="flex-1 bg-white rounded-2xl border border-slate-200 px-5 py-4 flex items-center gap-3 shadow-sm">
           <Search size={18} className="text-slate-400 flex-shrink-0" />
           <input
             type="text"
@@ -245,6 +276,25 @@ export default function CoreEngagement() {
             </button>
           )}
         </div>
+        {/* Entered By Filter */}
+        <div className="bg-white rounded-2xl border border-slate-200 px-5 py-4 flex items-center gap-3 shadow-sm md:w-64">
+          <select
+            value={enteredByFilter}
+            onChange={(e) => setEnteredByFilter(e.target.value)}
+            className="bg-transparent text-sm text-slate-700 placeholder:text-slate-400 outline-none"
+          >
+            <option value="">All entered by</option>
+            {enteredByOptions.map(({ name, count }) => (
+              <option key={name} value={name}>{`${name} (${count})`}</option>
+            ))}
+          </select>
+          {enteredByFilter && (
+            <button onClick={() => setEnteredByFilter("")} className="text-slate-400 hover:text-slate-600">
+              <X size={16} />
+            </button>
+          )}
+        </div>
+      </div>
 
         {/* Table */}
         <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
@@ -252,17 +302,17 @@ export default function CoreEngagement() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-slate-900 text-white">
-                  {["Sl No", "Core Team Name", "Team Formation Done", "Activity", "Proof", "Remarks", "Actions"].map((h) => (
-                    <th key={h} className="px-5 py-4 text-left font-semibold text-xs tracking-wider uppercase whitespace-nowrap">
-                      {h}
-                    </th>
-                  ))}
+                  {["Sl No", "Core Team Name", "Team Formation Done", "Activity", "District", "Block", "Proof", "Remarks", "Actions", "Entered By"].map((h) => (
+                  <th key={h} className="px-5 py-4 text-left font-semibold text-xs tracking-wider uppercase whitespace-nowrap">
+                    {h}
+                  </th>
+                ))}
                 </tr>
               </thead>
               <tbody>
                 {filteredData.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="px-5 py-16 text-center text-slate-400 text-sm">
+                    <td colSpan={10} className="px-5 py-16 text-center text-slate-400 text-sm">
                       No records found. Add one to get started.
                     </td>
                   </tr>
@@ -281,6 +331,8 @@ export default function CoreEngagement() {
                           {item.team_formation_done}
                         </span>
                       </td>
+                      <td className="px-5 py-4">{item.district || "—"}</td>
+                      <td className="px-5 py-4">{item.block || "—"}</td>
                       <td className="px-5 py-4 text-slate-700 font-medium max-w-[200px] truncate">{item.activity}</td>
                       <td className="px-5 py-4 text-slate-500">
                         {item.proof ? (
@@ -320,6 +372,10 @@ export default function CoreEngagement() {
                             </>
                           )}
                         </div>
+                      </td>
+                      <td className="px-5 py-4">
+                        <div className="font-semibold text-slate-800 text-xs">{item.entered_by || 'Unknown'}</div>
+                        <div className="text-[10px] text-slate-400 font-medium">{item.entered_time || '—'}</div>
                       </td>
                     </tr>
                   ))
@@ -362,6 +418,30 @@ export default function CoreEngagement() {
                     onChange={(e) => setFormData({ ...formData, core_team_name: e.target.value })}
                     className={inputCls(!!errors.core_team_name)}
                   />
+                </Field>
+                <Field label="District *" error={errors.district}>
+                  <select
+                    value={formData.district}
+                    onChange={(e) => setFormData({ ...formData, district: e.target.value, block: "" })}
+                    className={inputCls(!!errors.district)}
+                  >
+                    <option value="">Select District</option>
+                    {DISTRICTS.map((d) => (
+                      <option key={d} value={d}>{d}</option>
+                    ))}
+                  </select>
+                </Field>
+                <Field label="Block *" error={errors.block}>
+                  <select
+                    value={formData.block}
+                    onChange={(e) => setFormData({ ...formData, block: e.target.value })}
+                    className={inputCls(!!errors.block)}
+                  >
+                    <option value="">Select Block</option>
+                    {(DISTRICT_BLOCKS[formData.district] || []).map((b) => (
+                      <option key={b} value={b}>{b}</option>
+                    ))}
+                  </select>
                 </Field>
 
                 <Field label="Team Formation Done">

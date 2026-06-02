@@ -63,7 +63,7 @@ export default function KPIs() {
       <div className="mb-10">
 
         <h1 className="text-5xl font-bold text-slate-800">
-          Commuityy Team KPIs
+          Community Team KPIs
         </h1>
 
         <p className="text-slate-500 mt-3 text-lg">

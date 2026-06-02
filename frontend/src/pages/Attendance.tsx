@@ -4,15 +4,8 @@ import {
   useState,
 } from 'react'
 
-import {
-  CalendarDays,
-  Clock3,
-  Search,
-  Users,
-  Pencil,
-  Trash2,
-  X,
-} from 'lucide-react'
+import { useNavigate } from 'react-router-dom';
+import { CalendarDays, Clock3, Search, Users, Pencil, Trash2, X } from 'lucide-react';
 
 import api from '../services/api'
 
@@ -32,12 +25,18 @@ export default function Attendance() {
   const [checkOutTime, setCheckOutTime] = useState('')
   const [workDone, setWorkDone] = useState('')
   const [currentUser, setCurrentUser] = useState<any>(null)
+  const [showMyOnly, setShowMyOnly] = useState(false)
+  const navigate = useNavigate();
 
   useEffect(() => {
     const userStr = localStorage.getItem('user')
     if (userStr) {
       try {
-        setCurrentUser(JSON.parse(userStr))
+        const u = JSON.parse(userStr)
+        setCurrentUser(u)
+        if (u.role === 'employee') {
+          setShowMyOnly(true)
+        }
       } catch (e) {
         console.error(e)
       }
@@ -138,11 +137,23 @@ export default function Attendance() {
         )
       }
     }
-
   // =====================================
-  // UPDATE
+  // CHECKOUT
   // =====================================
 
+  const handleCheckout = async (id: number) => {
+    try {
+      const now = new Date().toISOString().slice(0, 16);
+      await api.put(`/attendance/${id}`, { check_out: now });
+      // Refresh data
+      fetchAttendance();
+      // Logout and navigate
+      localStorage.removeItem('user');
+      navigate('/login', { replace: true });
+    } catch (error) {
+      console.log('CHECKOUT ERROR:', error);
+    }
+  };
  const handleUpdate =
   async () => {
 
@@ -193,9 +204,12 @@ export default function Attendance() {
 
       fetchAttendance()
 
-      setShowModal(false)
-
-      setEditId(null)
+      setShowModal(false);
+      setEditId(null);
+      if (checkOutTime) {
+        localStorage.removeItem('user');
+        navigate('/login', { replace: true });
+      }
 
     }
 
@@ -217,6 +231,9 @@ export default function Attendance() {
 
       return attendance.filter(
         (item: any) => {
+          if (showMyOnly && currentUser?.name && item.employee_name?.toLowerCase() !== currentUser.name.toLowerCase()) {
+            return false
+          }
 
           const matchesSearch =
 
@@ -247,6 +264,8 @@ export default function Attendance() {
       attendance,
       search,
       selectedDate,
+      showMyOnly,
+      currentUser,
     ])
 
   // =====================================
@@ -254,7 +273,7 @@ export default function Attendance() {
   // =====================================
 
   const totalAttendance =
-    attendance.length
+    filteredAttendance.length
 
   const todayDate =
     new Date()
@@ -262,7 +281,7 @@ export default function Attendance() {
       .split('T')[0]
 
   const todayPresent =
-    attendance.filter(
+    filteredAttendance.filter(
       (item) =>
         item.check_in
           ?.split('T')[0] ===
@@ -270,7 +289,7 @@ export default function Attendance() {
     ).length
 
   const totalHours =
-    attendance.reduce(
+    filteredAttendance.reduce(
       (total, item) => {
 
         if (
@@ -444,9 +463,9 @@ export default function Attendance() {
 
       <div className="bg-white rounded-3xl p-5 shadow-sm border mb-8">
 
-        <div className="flex flex-col md:flex-row gap-4">
+        <div className="flex flex-col md:flex-row gap-4 items-center">
 
-          <div className="flex-1 relative">
+          <div className="flex-1 w-full relative">
 
             <Search
               size={20}
@@ -475,8 +494,22 @@ export default function Attendance() {
                 e.target.value
               )
             }
-            className="h-14 px-5 rounded-2xl border border-slate-300 outline-none"
+            className="h-14 px-5 rounded-2xl border border-slate-300 outline-none w-full md:w-auto"
           />
+
+          {currentUser?.role === 'employee' && (
+            <label className="flex items-center gap-2 cursor-pointer bg-slate-50 border px-5 py-3 rounded-2xl h-14 w-full md:w-auto whitespace-nowrap">
+              <input
+                type="checkbox"
+                checked={showMyOnly}
+                onChange={(e) => setShowMyOnly(e.target.checked)}
+                className="w-5 h-5 accent-blue-600 rounded cursor-pointer"
+              />
+              <span className="text-sm font-semibold text-slate-700 select-none">
+                Show My Attendance Only
+              </span>
+            </label>
+          )}
 
         </div>
 
@@ -692,7 +725,16 @@ export default function Attendance() {
 
                             </div>
                           ) : (
-                            <span className="text-slate-400 text-xs font-semibold">View Only</span>
+                            <div className="flex gap-3">
+                              {!item.check_out && (
+                                <button
+                                  onClick={() => handleCheckout(item.id)}
+                                  className="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-xl text-white text-sm font-semibold"
+                                >
+                                  Check Out
+                                </button>
+                              )}
+                            </div>
                           )}
 
                         </td>
