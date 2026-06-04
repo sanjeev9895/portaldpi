@@ -1,28 +1,19 @@
 import os
+import sys
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
-from dotenv import load_dotenv
 
-# Load local environment variables if available
-load_dotenv()
+# Ensure the backend directory is on the Python path
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./vizhuthugal.db")
+# Local SQLite database
+DATABASE_URL = "sqlite:///./vizhuthugal.db"
 
-# If using PostgreSQL, verify the driver scheme is postgresql://
-if DATABASE_URL.startswith("postgres://"):
-    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
-
-# SQLite requires different connection args than PostgreSQL
-if DATABASE_URL.startswith("sqlite"):
-    engine = create_engine(
-        DATABASE_URL,
-        connect_args={"check_same_thread": False}
-    )
-else:
-    engine = create_engine(
-        DATABASE_URL
-    )
+engine = create_engine(
+    DATABASE_URL,
+    connect_args={"check_same_thread": False}
+)
 
 SessionLocal = sessionmaker(
     autocommit=False,
@@ -31,4 +22,3 @@ SessionLocal = sessionmaker(
 )
 
 Base = declarative_base()
-

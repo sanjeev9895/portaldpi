@@ -1,6 +1,7 @@
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
+from typing import Optional
 
 from database import SessionLocal, engine
 import models
@@ -9,7 +10,11 @@ import schemas
 # Create database tables if they do not exist
 models.Base.metadata.create_all(bind=engine)
 
-app = FastAPI(title="Vizhuthugal Dashboard API")
+app = FastAPI(
+    title="Vizhuthugal Dashboard API",
+    description="Backend API for Vizhuthugal Dashboard — Employees, Attendance, Alumni Community Registry & Core Team Formation",
+    version="1.0.0",
+)
 
 # Configure CORS middleware
 app.add_middleware(
@@ -29,7 +34,7 @@ def get_db():
         db.close()
 
 
-@app.get("/")
+@app.get("/", tags=["Health"])
 def greet():
     return {
         "message": "Welcome to Vizhuthugal Dashboard API"
@@ -40,7 +45,7 @@ def greet():
 # EMPLOYEES API
 # =========================================================
 
-@app.post("/employees", response_model=schemas.EmployeeResponse)
+@app.post("/employees", response_model=schemas.EmployeeResponse, tags=["Employees"])
 def create_employee(
     emp: schemas.EmployeeCreate,
     db: Session = Depends(get_db)
@@ -57,12 +62,12 @@ def create_employee(
     return employee
 
 
-@app.get("/employees", response_model=list[schemas.EmployeeResponse])
+@app.get("/employees", response_model=list[schemas.EmployeeResponse], tags=["Employees"])
 def get_employees(db: Session = Depends(get_db)):
     return db.query(models.Employee).all()
 
 
-@app.get("/employees/{id}", response_model=schemas.EmployeeResponse)
+@app.get("/employees/{id}", response_model=schemas.EmployeeResponse, tags=["Employees"])
 def get_employee(id: int, db: Session = Depends(get_db)):
     employee = db.query(models.Employee).filter(models.Employee.id == id).first()
     if not employee:
@@ -70,7 +75,7 @@ def get_employee(id: int, db: Session = Depends(get_db)):
     return employee
 
 
-@app.put("/employees/{id}", response_model=schemas.EmployeeResponse)
+@app.put("/employees/{id}", response_model=schemas.EmployeeResponse, tags=["Employees"])
 def update_employee(
     id: int,
     emp: schemas.EmployeeCreate,
@@ -88,7 +93,7 @@ def update_employee(
     return employee
 
 
-@app.delete("/employees/{id}")
+@app.delete("/employees/{id}", tags=["Employees"])
 def delete_employee(id: int, db: Session = Depends(get_db)):
     employee = db.query(models.Employee).filter(models.Employee.id == id).first()
     if not employee:
@@ -103,13 +108,13 @@ def delete_employee(id: int, db: Session = Depends(get_db)):
 # ATTENDANCE API
 # =========================================================
 
-@app.get("/attendance")
+@app.get("/attendance", tags=["Attendance"])
 def get_attendance(db: Session = Depends(get_db)):
     records = db.query(models.Attendance).all()
     return {"data": records}
 
 
-@app.post("/attendance", response_model=schemas.AttendanceResponse)
+@app.post("/attendance", response_model=schemas.AttendanceResponse, tags=["Attendance"])
 def add_attendance(
     data: schemas.AttendanceCreate,
     db: Session = Depends(get_db)
@@ -121,7 +126,7 @@ def add_attendance(
     return attendance
 
 
-@app.put("/attendance/{id}")
+@app.put("/attendance/{id}", tags=["Attendance"])
 def update_attendance(
     id: int,
     data: schemas.AttendanceCreate,
@@ -138,7 +143,7 @@ def update_attendance(
     return {"message": "Attendance Updated"}
 
 
-@app.delete("/attendance/{id}")
+@app.delete("/attendance/{id}", tags=["Attendance"])
 def delete_attendance(id: int, db: Session = Depends(get_db)):
     attendance = db.query(models.Attendance).filter(models.Attendance.id == id).first()
     if not attendance:
@@ -147,6 +152,163 @@ def delete_attendance(id: int, db: Session = Depends(get_db)):
     db.delete(attendance)
     db.commit()
     return {"message": "Attendance Deleted"}
+
+
+# =========================================================
+# ALUMNI COMMUNITY REGISTRY (School Community) API
+# =========================================================
+
+@app.post("/school-community", response_model=schemas.SchoolCommunityResponse, tags=["Alumni Community Registry"])
+def create_school_community(
+    data: schemas.SchoolCommunityCreate,
+    db: Session = Depends(get_db)
+):
+    """Create a new Alumni Community Registry record."""
+    record = models.SchoolCommunity(**data.model_dump())
+    db.add(record)
+    db.commit()
+    db.refresh(record)
+    return record
+
+
+@app.get("/school-community", response_model=list[schemas.SchoolCommunityResponse], tags=["Alumni Community Registry"])
+def get_all_school_communities(
+    district: Optional[str] = Query(None, description="Filter by district"),
+    block: Optional[str] = Query(None, description="Filter by block"),
+    db: Session = Depends(get_db)
+):
+    """Get all Alumni Community Registry records with optional district/block filter."""
+    query = db.query(models.SchoolCommunity)
+    if district:
+        query = query.filter(models.SchoolCommunity.district == district)
+    if block:
+        query = query.filter(models.SchoolCommunity.block == block)
+    return query.all()
+
+
+@app.get("/school-community/{id}", response_model=schemas.SchoolCommunityResponse, tags=["Alumni Community Registry"])
+def get_school_community(id: int, db: Session = Depends(get_db)):
+    """Get a single Alumni Community Registry record by ID."""
+    record = db.query(models.SchoolCommunity).filter(models.SchoolCommunity.id == id).first()
+    if not record:
+        raise HTTPException(status_code=404, detail="School Community record not found")
+    return record
+
+
+@app.put("/school-community/{id}", response_model=schemas.SchoolCommunityResponse, tags=["Alumni Community Registry"])
+def update_school_community(
+    id: int,
+    data: schemas.SchoolCommunityCreate,
+    db: Session = Depends(get_db)
+):
+    """Update an existing Alumni Community Registry record."""
+    record = db.query(models.SchoolCommunity).filter(models.SchoolCommunity.id == id).first()
+    if not record:
+        raise HTTPException(status_code=404, detail="School Community record not found")
+
+    for key, value in data.model_dump().items():
+        setattr(record, key, value)
+
+    db.commit()
+    db.refresh(record)
+    return record
+
+
+@app.delete("/school-community/{id}", tags=["Alumni Community Registry"])
+def delete_school_community(id: int, db: Session = Depends(get_db)):
+    """Delete an Alumni Community Registry record."""
+    record = db.query(models.SchoolCommunity).filter(models.SchoolCommunity.id == id).first()
+    if not record:
+        raise HTTPException(status_code=404, detail="School Community record not found")
+
+    db.delete(record)
+    db.commit()
+    return {"message": "School Community record deleted"}
+
+
+# =========================================================
+# ALUMNI CORE TEAM FORMATION API
+# =========================================================
+
+@app.post("/core-team-formation", response_model=schemas.CoreTeamFormationResponse, tags=["Alumni Core Team Formation"])
+def create_core_team_formation(
+    data: schemas.CoreTeamFormationCreate,
+    db: Session = Depends(get_db)
+):
+    """Create a new Alumni Core Team Formation record."""
+    # Auto-calculate core_team_status based on count
+    record_data = data.model_dump()
+    count = record_data.get("core_team_count", 0)
+    record_data["core_team_status"] = "Formed" if count >= 25 else "Not Formed"
+
+    record = models.CoreTeamFormation(**record_data)
+    db.add(record)
+    db.commit()
+    db.refresh(record)
+    return record
+
+
+@app.get("/core-team-formation", response_model=list[schemas.CoreTeamFormationResponse], tags=["Alumni Core Team Formation"])
+def get_all_core_team_formations(
+    district: Optional[str] = Query(None, description="Filter by district"),
+    block: Optional[str] = Query(None, description="Filter by block"),
+    school_name: Optional[str] = Query(None, description="Search by school name"),
+    db: Session = Depends(get_db)
+):
+    """Get all Alumni Core Team Formation records with optional filters."""
+    query = db.query(models.CoreTeamFormation)
+    if district:
+        query = query.filter(models.CoreTeamFormation.district == district)
+    if block:
+        query = query.filter(models.CoreTeamFormation.block == block)
+    if school_name:
+        query = query.filter(models.CoreTeamFormation.school_name.ilike(f"%{school_name}%"))
+    return query.all()
+
+
+@app.get("/core-team-formation/{id}", response_model=schemas.CoreTeamFormationResponse, tags=["Alumni Core Team Formation"])
+def get_core_team_formation(id: int, db: Session = Depends(get_db)):
+    """Get a single Alumni Core Team Formation record by ID."""
+    record = db.query(models.CoreTeamFormation).filter(models.CoreTeamFormation.id == id).first()
+    if not record:
+        raise HTTPException(status_code=404, detail="Core Team Formation record not found")
+    return record
+
+
+@app.put("/core-team-formation/{id}", response_model=schemas.CoreTeamFormationResponse, tags=["Alumni Core Team Formation"])
+def update_core_team_formation(
+    id: int,
+    data: schemas.CoreTeamFormationCreate,
+    db: Session = Depends(get_db)
+):
+    """Update an existing Alumni Core Team Formation record."""
+    record = db.query(models.CoreTeamFormation).filter(models.CoreTeamFormation.id == id).first()
+    if not record:
+        raise HTTPException(status_code=404, detail="Core Team Formation record not found")
+
+    update_data = data.model_dump()
+    # Auto-recalculate status on update
+    count = update_data.get("core_team_count", 0)
+    update_data["core_team_status"] = "Formed" if count >= 25 else "Not Formed"
+
+    for key, value in update_data.items():
+        setattr(record, key, value)
+
+    db.commit()
+    db.refresh(record)
+    return record
+
+
+@app.delete("/core-team-formation/{id}", tags=["Alumni Core Team Formation"])
+def delete_core_team_formation(id: int, db: Session = Depends(get_db)):
+    """Delete an Alumni Core Team Formation record."""
+    record = db.query(models.CoreTeamFormation).filter(models.CoreTeamFormation.id == id).first()
+    if not record:
+        raise HTTPException(status_code=404, detail="Core Team Formation record not found")
+
+    db.delete(record)
+    db.commit()
+    return {"message": "Core Team Formation record deleted"}
 
 
 
