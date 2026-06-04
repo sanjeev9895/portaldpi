@@ -1,15 +1,28 @@
 import os
-
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
+from dotenv import load_dotenv
 
-DATABASE_URL = "sqlite:///./vizhuthugal.db"
+# Load local environment variables if available
+load_dotenv()
 
-engine = create_engine(
-    DATABASE_URL,
-    connect_args={"check_same_thread": False}
-)
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./vizhuthugal.db")
+
+# If using PostgreSQL, verify the driver scheme is postgresql://
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+
+# SQLite requires different connection args than PostgreSQL
+if DATABASE_URL.startswith("sqlite"):
+    engine = create_engine(
+        DATABASE_URL,
+        connect_args={"check_same_thread": False}
+    )
+else:
+    engine = create_engine(
+        DATABASE_URL
+    )
 
 SessionLocal = sessionmaker(
     autocommit=False,
@@ -18,3 +31,4 @@ SessionLocal = sessionmaker(
 )
 
 Base = declarative_base()
+

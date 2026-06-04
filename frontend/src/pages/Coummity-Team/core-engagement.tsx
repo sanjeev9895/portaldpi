@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { Search, Plus, Eye, Pencil, Trash2, X, Users, CheckCircle, XCircle, Upload, Image as ImageIcon } from "lucide-react";
+import { Search, Plus, Eye, Pencil, Trash2, X, Users, CheckCircle, XCircle, Upload, Image as ImageIcon, ChevronDown } from "lucide-react";
 import BackButton from "../../components/BackButton";
 import { DISTRICTS, DISTRICT_BLOCKS } from "../../utils/districtData";
 
@@ -77,6 +77,8 @@ export default function CoreEngagement() {
     return defaultData;
   });
   const [enteredByFilter, setEnteredByFilter] = useState("");
+  const [districtFilter, setDistrictFilter] = useState("");
+  const [blockFilter, setBlockFilter] = useState("");
   const enteredByOptions = useMemo(() => {
     const map = new Map<string, number>();
     data.forEach(item => {
@@ -188,10 +190,12 @@ export default function CoreEngagement() {
   };
 
   const filteredData = data.filter((item) =>
-  (item.core_team_name.toLowerCase().includes(search.toLowerCase()) ||
-   item.activity.toLowerCase().includes(search.toLowerCase())) &&
-  (enteredByFilter ? (item.entered_by?.toLowerCase().includes(enteredByFilter.toLowerCase())) : true)
-);
+    (item.core_team_name.toLowerCase().includes(search.toLowerCase()) ||
+     item.activity.toLowerCase().includes(search.toLowerCase())) &&
+    (enteredByFilter ? (item.entered_by?.toLowerCase().includes(enteredByFilter.toLowerCase())) : true) &&
+    (districtFilter ? item.district === districtFilter : true) &&
+    (blockFilter ? item.block === blockFilter : true)
+  );
 
   const activeCount = data.filter((d) => d.team_formation_done === "Yes").length;
 
@@ -259,7 +263,7 @@ export default function CoreEngagement() {
         </div>
 
       {/* Search and Filter Section */}
-      <div className="flex flex-col md:flex-row md:items-center gap-4 mb-4">
+      <div className="flex flex-col md:flex-row items-stretch md:items-center gap-4 mb-5">
         {/* Search Bar */}
         <div className="flex-1 bg-white rounded-2xl border border-slate-200 px-5 py-4 flex items-center gap-3 shadow-sm">
           <Search size={18} className="text-slate-400 flex-shrink-0" />
@@ -271,28 +275,109 @@ export default function CoreEngagement() {
             className="flex-1 bg-transparent text-sm text-slate-700 placeholder:text-slate-400 outline-none"
           />
           {search && (
-            <button onClick={() => setSearch("")} className="text-slate-400 hover:text-slate-600">
+            <button onClick={() => setSearch("")} className="text-slate-400 hover:text-slate-600 cursor-pointer">
               <X size={16} />
             </button>
           )}
         </div>
+
+        {/* District Filter */}
+        <div className="bg-white rounded-2xl border border-slate-200 px-5 py-4 flex items-center gap-3 shadow-sm min-w-[200px] relative">
+          <select
+            value={districtFilter}
+            onChange={(e) => {
+              setDistrictFilter(e.target.value);
+              setBlockFilter(""); // Reset block filter when district changes
+            }}
+            className="flex-1 bg-transparent text-sm text-slate-700 placeholder:text-slate-400 outline-none cursor-pointer appearance-none pr-8"
+          >
+            <option value="">All Districts</option>
+            {DISTRICTS.map((d) => (
+              <option key={d} value={d}>
+                {d}
+              </option>
+            ))}
+          </select>
+          <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-1.5 pointer-events-none">
+            {districtFilter && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setDistrictFilter("");
+                  setBlockFilter("");
+                }}
+                className="text-slate-400 hover:text-slate-600 pointer-events-auto cursor-pointer"
+              >
+                <X size={16} />
+              </button>
+            )}
+            <ChevronDown size={15} className="text-slate-400" />
+          </div>
+        </div>
+
+        {/* Block Filter */}
+        <div className="bg-white rounded-2xl border border-slate-200 px-5 py-4 flex items-center gap-3 shadow-sm min-w-[200px] relative">
+          <select
+            value={blockFilter}
+            onChange={(e) => setBlockFilter(e.target.value)}
+            disabled={!districtFilter}
+            className="flex-1 bg-transparent text-sm text-slate-700 placeholder:text-slate-400 outline-none cursor-pointer disabled:opacity-50 appearance-none pr-8"
+          >
+            <option value="">
+              {districtFilter ? "All Blocks" : "Select District First"}
+            </option>
+            {districtFilter &&
+              DISTRICT_BLOCKS[districtFilter]?.map((b) => (
+                <option key={b} value={b}>
+                  {b}
+                </option>
+              ))}
+          </select>
+          <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-1.5 pointer-events-none">
+            {blockFilter && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setBlockFilter("");
+                }}
+                className="text-slate-400 hover:text-slate-600 pointer-events-auto cursor-pointer"
+              >
+                <X size={16} />
+              </button>
+            )}
+            <ChevronDown size={15} className="text-slate-400" />
+          </div>
+        </div>
+
         {/* Entered By Filter */}
-        <div className="bg-white rounded-2xl border border-slate-200 px-5 py-4 flex items-center gap-3 shadow-sm md:w-64">
+        <div className="bg-white rounded-2xl border border-slate-200 px-5 py-4 flex items-center gap-3 shadow-sm min-w-[200px] relative">
           <select
             value={enteredByFilter}
             onChange={(e) => setEnteredByFilter(e.target.value)}
-            className="bg-transparent text-sm text-slate-700 placeholder:text-slate-400 outline-none"
+            className="flex-1 bg-transparent text-sm text-slate-700 placeholder:text-slate-400 outline-none cursor-pointer appearance-none pr-8"
           >
             <option value="">All entered by</option>
             {enteredByOptions.map(({ name, count }) => (
               <option key={name} value={name}>{`${name} (${count})`}</option>
             ))}
           </select>
-          {enteredByFilter && (
-            <button onClick={() => setEnteredByFilter("")} className="text-slate-400 hover:text-slate-600">
-              <X size={16} />
-            </button>
-          )}
+          <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-1.5 pointer-events-none">
+            {enteredByFilter && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setEnteredByFilter("");
+                }}
+                className="text-slate-400 hover:text-slate-600 pointer-events-auto cursor-pointer"
+              >
+                <X size={16} />
+              </button>
+            )}
+            <ChevronDown size={15} className="text-slate-400" />
+          </div>
         </div>
       </div>
 
@@ -302,7 +387,7 @@ export default function CoreEngagement() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-slate-900 text-white">
-                  {["Sl No", "Core Team Name", "Team Formation Done", "Activity", "District", "Block", "Proof", "Remarks", "Actions", "Entered By"].map((h) => (
+                  {["Sl No", "Core Team Name", "Team Formation Done", "District", "Block", "Activity", "Proof", "Remarks", "Actions", "Entered By"].map((h) => (
                   <th key={h} className="px-5 py-4 text-left font-semibold text-xs tracking-wider uppercase whitespace-nowrap">
                     {h}
                   </th>

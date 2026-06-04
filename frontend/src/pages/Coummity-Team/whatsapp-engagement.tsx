@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { Search, Plus, Eye, Pencil, Trash2, X, MessageSquare, Link2, User, Users, CheckCircle, TrendingUp } from "lucide-react";
 import BackButton from "../../components/BackButton";
+import { DISTRICTS, DISTRICT_BLOCKS } from "../../utils/districtData";
 
 type WhatsAppRecord = {
   id: number;

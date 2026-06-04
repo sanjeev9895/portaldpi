@@ -13,8 +13,10 @@ import {
 
 import {
   useState,
+  useEffect,
 } from 'react'
 import BackButton from '../components/BackButton'
+import api from '../services/api'
 
 export default function ProfileSettings() {
 
@@ -23,6 +25,7 @@ export default function ProfileSettings() {
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [currentUser, setCurrentUser] = useState<any>(null)
+  const [employeeId, setEmployeeId] = useState<number | null>(null)
 
   const [formData, setFormData] = useState({
     name: '',
@@ -35,41 +38,103 @@ export default function ProfileSettings() {
     confirmPassword: '',
   })
 
-  useState(() => {
+  useEffect(() => {
     const userStr = localStorage.getItem('user')
     if (userStr) {
       try {
         const uObj = JSON.parse(userStr)
         setCurrentUser(uObj)
-        setFormData({
-          name: uObj.name || '',
-          email: uObj.email || '',
-          phone: uObj.phone || '9876543210',
-          role: uObj.role || 'employee',
-          department: uObj.department || 'Alumni Connect',
-          location: uObj.location || 'Madurai',
-          password: '',
-          confirmPassword: '',
-        })
+
+        const email = uObj.email || ''
+
+        // Prefill default details from active user session
+        let initialName = uObj.name || ''
+        let initialPhone = uObj.phone || '9876543210'
+        let initialRole = uObj.role || 'employee'
+        let initialDept = uObj.department || 'Alumni Connect'
+        let initialLoc = uObj.location || 'Madurai'
+
+        // Check if there are registered details in localStorage
+        const registeredUsers = JSON.parse(localStorage.getItem('registeredUsers') || '[]')
+        const matchedReg = registeredUsers.find((u: any) => u.email === email)
+        if (matchedReg) {
+          initialName = matchedReg.name || initialName
+          initialPhone = matchedReg.phone || initialPhone
+          initialRole = matchedReg.role || initialRole
+        }
+
+        // Prefill profile image from localStorage lookup map
+        const savedImages = JSON.parse(localStorage.getItem('profileImages') || '{}')
+        if (savedImages[email]) {
+          setProfileImage(savedImages[email])
+        }
+
+        // Try to fetch additional/registered details from backend SQLite Database
+        api.get('/employees')
+          .then((res) => {
+            const employeesList = res.data || []
+            const matchedEmp = employeesList.find((e: any) => e.email === email)
+            if (matchedEmp) {
+              setEmployeeId(matchedEmp.id)
+              setFormData({
+                name: matchedEmp.name || initialName,
+                email: matchedEmp.email || email,
+                phone: matchedEmp.contact || initialPhone,
+                role: matchedEmp.role || initialRole,
+                department: matchedEmp.department || initialDept,
+                location: matchedEmp.joining_date || initialLoc,
+                password: '',
+                confirmPassword: '',
+              })
+            } else {
+              setFormData({
+                name: initialName,
+                email: email,
+                phone: initialPhone,
+                role: initialRole,
+                department: initialDept,
+                location: initialLoc,
+                password: '',
+                confirmPassword: '',
+              })
+            }
+          })
+          .catch((err) => {
+            console.error('Failed to fetch employee details:', err)
+            setFormData({
+              name: initialName,
+              email: email,
+              phone: initialPhone,
+              role: initialRole,
+              department: initialDept,
+              location: initialLoc,
+              password: '',
+              confirmPassword: '',
+            })
+          })
       } catch (e) {
         console.error(e)
       }
     }
-  })
+  }, [])
 
   const handleImageUpload = (
     e: React.ChangeEvent<HTMLInputElement>
   ) => {
-
-    const file =
-      e.target.files?.[0]
-
+    const file = e.target.files?.[0]
     if (file) {
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        const base64String = reader.result as string
+        setProfileImage(base64String)
 
-      const imageUrl =
-        URL.createObjectURL(file)
-
-      setProfileImage(imageUrl)
+        const savedImages = JSON.parse(localStorage.getItem('profileImages') || '{}')
+        if (currentUser?.email) {
+          savedImages[currentUser.email] = base64String
+          localStorage.setItem('profileImages', JSON.stringify(savedImages))
+        }
+      }
+      reader.readAsDataURL(file)
     }
   }
 
@@ -119,38 +184,72 @@ export default function ProfileSettings() {
   }
 
   const handleSave = () => {
-
-    if (
-      formData.phone &&
-      formData.phone.length < 10
-    ) {
-
-      alert(
-        'Phone number must contain 10 digits'
-      )
-
+    if (formData.phone && formData.phone.length < 10) {
+      alert('Phone number must contain 10 digits')
       return
     }
 
-    if (
-      formData.email &&
-      !formData.email.includes(
-        '@gmail.com'
-      )
-    ) {
-
-      alert(
-        'Email must contain @gmail.com'
-      )
-
+    if (formData.email && !formData.email.includes('@gmail.com')) {
+      alert('Email must contain @gmail.com')
       return
+    }
+
+    if (formData.password && formData.password !== formData.confirmPassword) {
+      alert('Passwords do not match')
+      return
+    }
+
+    // 1. Update active user session in localStorage
+    const updatedUser = {
+      ...currentUser,
+      name: formData.name,
+      phone: formData.phone,
+      department: formData.department,
+      location: formData.location,
+    }
+    localStorage.setItem('user', JSON.stringify(updatedUser))
+    setCurrentUser(updatedUser)
+
+    // 2. Update registeredUsers list in localStorage
+    const registeredUsers = JSON.parse(localStorage.getItem('registeredUsers') || '[]')
+    const userIndex = registeredUsers.findIndex((u: any) => u.email === formData.email)
+    if (userIndex !== -1) {
+      registeredUsers[userIndex].name = formData.name
+      registeredUsers[userIndex].phone = formData.phone
+      if (formData.password) {
+        registeredUsers[userIndex].password = formData.password
+      }
+      localStorage.setItem('registeredUsers', JSON.stringify(registeredUsers))
+    }
+
+    // 3. Update profile image in lookup map
+    if (profileImage && currentUser?.email) {
+      const savedImages = JSON.parse(localStorage.getItem('profileImages') || '{}')
+      savedImages[currentUser.email] = profileImage
+      localStorage.setItem('profileImages', JSON.stringify(savedImages))
+    }
+
+    // 4. Update SQLite database employee record if one is linked
+    if (employeeId) {
+      const payload = {
+        name: formData.name,
+        email: formData.email,
+        contact: formData.phone,
+        department: formData.department,
+        role: formData.role ? (formData.role.charAt(0).toUpperCase() + formData.role.slice(1)) : 'Employee',
+        joining_date: formData.location,
+      }
+      api.put(`/employees/${employeeId}`, payload)
+        .then((res) => {
+          console.log('Employee updated in SQLite database successfully:', res.data)
+        })
+        .catch((err) => {
+          console.error('Failed to update employee in SQLite database:', err)
+        })
     }
 
     setIsEditing(false)
-
-    alert(
-      'Profile Updated Successfully'
-    )
+    alert('Profile Updated Successfully')
   }
 
   return (
@@ -185,7 +284,7 @@ export default function ProfileSettings() {
 
         {
 
-          !isEditing && currentUser?.role !== 'employee' && (
+          !isEditing && (
 
             <button
 
@@ -457,11 +556,8 @@ export default function ProfileSettings() {
                 value={formData.email}
                 placeholder="example@gmail.com"
                 suffix="@gmail.com"
-                onChange={
-                  handleChange
-                }
                 disabled={
-                  !isEditing
+                  true
                 }
               />
 
@@ -494,11 +590,8 @@ export default function ProfileSettings() {
                 name="role"
                 value={formData.role}
                 placeholder="Enter role"
-                onChange={
-                  handleChange
-                }
                 disabled={
-                  !isEditing
+                  true
                 }
               />
 

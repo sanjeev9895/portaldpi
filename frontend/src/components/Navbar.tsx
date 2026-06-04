@@ -13,12 +13,19 @@ export default function Navbar() {
 
   const navigate = useNavigate();
   const [user, setUser] = useState<any>(null);
+  const [profileImage, setProfileImage] = useState<string>('/vizhuthugal.png');
 
   useEffect(() => {
     const userStr = localStorage.getItem('user');
     if (userStr) {
       try {
-        setUser(JSON.parse(userStr));
+        const parsedUser = JSON.parse(userStr);
+        setUser(parsedUser);
+        const email = parsedUser.email || '';
+        const savedImages = JSON.parse(localStorage.getItem('profileImages') || '{}');
+        if (savedImages[email]) {
+          setProfileImage(savedImages[email]);
+        }
       } catch (e) {
         console.error(e);
       }
@@ -83,7 +90,7 @@ export default function Navbar() {
         >
 
           <img
-            src="/vizhuthugal.png"
+            src={profileImage}
             alt="profile"
             className="w-10 h-10 rounded-full object-cover"
           />

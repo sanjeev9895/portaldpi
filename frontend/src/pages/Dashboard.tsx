@@ -15,10 +15,9 @@ import {
 import {
   useEffect,
   useState,
-  useMemo,
 } from 'react'
 
-import axios from 'axios'
+import api from '../services/api'
 import { useNavigate } from 'react-router-dom'
 
 import {
@@ -36,9 +35,9 @@ export default function Dashboard() {
 
   const navigate = useNavigate();
   const [employees, setEmployees] = useState<any[]>([])
-  const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('All Reports');
-  const [enteredByFilter, setEnteredByFilter] = useState('');
+  const [search] = useState('');
+  const [statusFilter] = useState('All Reports');
+  const [enteredByFilter] = useState('');
   const [loading, setLoading] = useState(false)
   const [currentUser, setCurrentUser] = useState<any>(null)
   const [schoolCommRaw, setSchoolCommRaw] = useState<any[]>([])
@@ -243,8 +242,8 @@ export default function Dashboard() {
 
       const res =
       
-         await axios.get(
-           'http://127.0.0.1:8000/employees'
+         await api.get(
+           '/employees'
           )        
 
       console.log(
@@ -292,7 +291,7 @@ export default function Dashboard() {
 
   const fetchAttendance = async () => {
     try {
-      const res = await axios.get('http://127.0.0.1:8000/attendance')
+      const res = await api.get('/attendance')
       const attendanceData = res.data.data || []
       setAttendance(attendanceData)
     } catch (err) {
@@ -311,7 +310,7 @@ export default function Dashboard() {
         check_out: '',
         work_done: ''
       }
-      await axios.post('http://127.0.0.1:8000/attendance', payload)
+      await api.post('/attendance', payload)
       alert('Checked In Successfully!')
       fetchAttendance()
     } catch (err) {
@@ -337,7 +336,7 @@ export default function Dashboard() {
         check_out: localISOTime,
         work_done: workDone
       }
-      await axios.put(`http://127.0.0.1:8000/attendance/${myAttendanceToday.id}`, payload)
+      await api.put(`/attendance/${myAttendanceToday.id}`, payload)
       alert('Checked Out Successfully!')
       setWorkDone('')
       fetchAttendance()
@@ -364,16 +363,16 @@ export default function Dashboard() {
     (item) => item.employee_name?.toLowerCase() === currentUser?.name?.toLowerCase()
   );
   
-  // Entered By dropdown options based on reports list
-  const enteredByOptions = useMemo(() => {
-    const map = new Map<string, number>();
-    reportsList.forEach(item => {
-      if (item.enteredBy) {
-        map.set(item.enteredBy, (map.get(item.enteredBy) ?? 0) + 1);
-      }
-    });
-    return Array.from(map.entries()).map(([name, count]) => ({ name, count }));
-  }, [reportsList]);
+  // Entered By dropdown options based on reports list (unused)
+  // const enteredByOptions = useMemo(() => {
+  //   const map = new Map<string, number>();
+  //   reportsList.forEach(item => {
+  //     if (item.enteredBy) {
+  //       map.set(item.enteredBy, (map.get(item.enteredBy) ?? 0) + 1);
+  //     }
+  //   });
+  //   return Array.from(map.entries()).map(([name, count]) => ({ name, count }));
+  // }, [reportsList]);
 
   const myTotalPresent = myAttendanceRecords.length;
 

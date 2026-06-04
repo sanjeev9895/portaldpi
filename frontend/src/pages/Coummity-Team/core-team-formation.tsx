@@ -1,42 +1,91 @@
 import { useState, useEffect, useMemo } from "react";
-import { Search, Plus, Eye, Pencil, Trash2, X, Users, CheckCircle, XCircle, Upload, Image as ImageIcon, ChevronDown } from "lucide-react";
-import BackButton from "../../components/BackButton";
+import {
+  Search, Plus, Eye, Pencil, Trash2, X, Users, School,
+  CheckCircle, XCircle, Upload, ChevronDown, FileText, Video, Image as ImageIcon
+} from "lucide-react";
 import { DISTRICTS, DISTRICT_BLOCKS } from "../../utils/districtData";
+import BackButton from "../../components/BackButton";
+
+type ProofFile = {
+  name: string;
+  type: string;
+  content: string; // base64 string
+};
 
 type CoreTeamRecord = {
   id: number;
+  district: string;
+  block: string;
   school_name: string;
-  district?: string;
-  block?: string;
-  core_team_name: string;
-  core_team_formation: string; // "Yes" or "No"
-  how_many_members: number;
-  proof: string | File | null;
-  remarks: string;
+  school_type: string;
+  school_category: string;
+  hm_supportive: string;
+  smc_alumni_support: string;
+  ambassador_alumni_support: string;
+  approach_taken: string;
+  period_started: string;
+  period_ended: string;
+  core_team_count: number;
+  core_team_status: string; // Formed if core_team_count > 25, else Not Formed
+  core_team_platforms: string[]; // WhatsApp, Facebook, Telegram, Vizhuthugal App, Others
+  other_platform?: string;
+  platform_link: string;
+  risk_challenge: string;
+  mitigation_taken: string;
+  take_back: string;
+  proof_files: ProofFile[];
+  media_content: string;
+  celebrated_status: string;
   entered_by?: string;
   entered_time?: string;
 };
 
 type FormData = {
-  school_name: string;
   district: string;
   block: string;
-  core_team_name: string;
-  core_team_formation: string;
-  how_many_members: string;
-  proof: File | null;
-  remarks: string;
+  school_name: string;
+  school_type: string;
+  school_category: string;
+  hm_supportive: string;
+  smc_alumni_support: string;
+  ambassador_alumni_support: string;
+  approach_taken: string;
+  period_started: string;
+  period_ended: string;
+  core_team_count: string;
+  core_team_platforms: string[];
+  other_platform: string;
+  platform_link: string;
+  risk_challenge: string;
+  mitigation_taken: string;
+  take_back: string;
+  proof_files: ProofFile[];
+  media_content: string;
+  celebrated_status: string;
 };
 
 const EMPTY_FORM: FormData = {
-  school_name: "",
   district: "",
   block: "",
-  core_team_name: "",
-  core_team_formation: "Yes",
-  how_many_members: "",
-  proof: null,
-  remarks: "",
+  school_name: "",
+  school_type: "Primary School",
+  school_category: "Career Guidance",
+  hm_supportive: "No",
+  smc_alumni_support: "No",
+  ambassador_alumni_support: "No",
+  approach_taken: "SHG Members - SMC",
+  period_started: "",
+  period_ended: "",
+  core_team_count: "",
+  core_team_platforms: [],
+  other_platform: "",
+  platform_link: "",
+  risk_challenge: "",
+  mitigation_taken: "",
+  take_back: "",
+  proof_files: [],
+  media_content: "",
+  celebrated_status: "No",
 };
 
 export default function CoreTeamFormation() {
@@ -44,14 +93,37 @@ export default function CoreTeamFormation() {
   const [enteredByFilter, setEnteredByFilter] = useState("");
   const [districtFilter, setDistrictFilter] = useState("");
   const [blockFilter, setBlockFilter] = useState("");
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+
+  // Advanced Filters
+  const [schoolTypeFilter, setSchoolTypeFilter] = useState("");
+  const [schoolCategoryFilter, setSchoolCategoryFilter] = useState("");
+  const [hmSupportiveFilter, setHmSupportiveFilter] = useState("");
+  const [smcAlumniSupportFilter, setSmcAlumniSupportFilter] = useState("");
+  const [ambassadorAlumniSupportFilter, setAmbassadorAlumniSupportFilter] = useState("");
+  const [celebratedStatusFilter, setCelebratedStatusFilter] = useState("");
+  const [coreTeamStatusFilter, setCoreTeamStatusFilter] = useState("");
+  const [approachTakenFilter, setApproachTakenFilter] = useState("");
+  const [minCoreTeamCountFilter, setMinCoreTeamCountFilter] = useState("");
+  const [startDateFilter, setStartDateFilter] = useState("");
+  const [endDateFilter, setEndDateFilter] = useState("");
+  const [platformFilter, setPlatformFilter] = useState("");
+  const [platformLinkFilter, setPlatformLinkFilter] = useState("");
+  const [riskChallengeFilter, setRiskChallengeFilter] = useState("");
+  const [mitigationTakenFilter, setMitigationTakenFilter] = useState("");
+  const [takeBackFilter, setTakeBackFilter] = useState("");
+  const [proofFilter, setProofFilter] = useState("");
+  const [mediaContentFilter, setMediaContentFilter] = useState("");
+  const [enteredTimeFilter, setEnteredTimeFilter] = useState("");
+
   const [showModal, setShowModal] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
   const [viewItem, setViewItem] = useState<CoreTeamRecord | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
   const [currentUser, setCurrentUser] = useState<any>(null);
 
-  useState(() => {
-    const userStr = localStorage.getItem('user');
+  useEffect(() => {
+    const userStr = localStorage.getItem("user");
     if (userStr) {
       try {
         setCurrentUser(JSON.parse(userStr));
@@ -59,10 +131,10 @@ export default function CoreTeamFormation() {
         console.error(e);
       }
     }
-  });
+  }, []);
 
   const [data, setData] = useState<CoreTeamRecord[]>(() => {
-    const saved = localStorage.getItem('core_teams');
+    const saved = localStorage.getItem("core_teams");
     if (saved) {
       try {
         return JSON.parse(saved);
@@ -70,47 +142,66 @@ export default function CoreTeamFormation() {
         console.error(e);
       }
     }
-    const defaultData = [
+    const defaultData: CoreTeamRecord[] = [
       {
         id: 1,
-        school_name: "Govt Hr Sec School, Madurai",
         district: "Madurai",
-        block: "Madurai West",
-        core_team_name: "Madurai Alumni Core Team",
-        core_team_formation: "Yes",
-        how_many_members: 9,
-        proof: "https://via.placeholder.com/150",
-        remarks: "Fully formed and bank account details updated.",
+        block: "Madurai East",
+        school_name: "Govt Hr Sec School, Madurai",
+        school_type: "High Sec School",
+        school_category: "Centinary School",
+        hm_supportive: "Yes",
+        smc_alumni_support: "Yes",
+        ambassador_alumni_support: "Yes",
+        approach_taken: "Key People -HM",
+        period_started: "2026-05-01",
+        period_ended: "2026-05-15",
+        core_team_count: 28,
+        core_team_status: "Formed",
+        core_team_platforms: ["WhatsApp", "Telegram"],
+        platform_link: "https://chat.whatsapp.com/GHSSAlumni2025",
+        risk_challenge: "Coordination with remote alumni",
+        mitigation_taken: "Assigned block leaders",
+        take_back: "Need regular updates",
+        proof_files: [],
+        media_content: "Inaugural event photos",
+        celebrated_status: "Yes",
+        entered_by: "State Admin",
+        entered_time: "2026-06-01, 10:00:00 AM",
       },
       {
         id: 2,
-        school_name: "St. Mary's School, Trichy",
         district: "Tiruchirappalli",
-        block: "Lalgudi",
-        core_team_name: "St. Mary Alumni association",
-        core_team_formation: "Yes",
-        how_many_members: 7,
-        proof: null,
-        remarks: "Committee registered with school management.",
-      },
-      {
-        id: 3,
-        school_name: "GHSS, Salem",
-        district: "Salem",
-        block: "Omalur",
-        core_team_name: "Salem Core Committee",
-        core_team_formation: "No",
-        how_many_members: 5,
-        proof: null,
-        remarks: "Treasurer selection pending.",
-      },
+        block: "Thiruverumbur",
+        school_name: "St. Joseph's Middle School",
+        school_type: "Middle School",
+        school_category: "Vetri Palligal School",
+        hm_supportive: "No",
+        smc_alumni_support: "Yes",
+        ambassador_alumni_support: "No",
+        approach_taken: "Organized Meet - Hm",
+        period_started: "2026-05-10",
+        period_ended: "2026-05-20",
+        core_team_count: 18,
+        core_team_status: "Not Formed",
+        core_team_platforms: ["Facebook"],
+        platform_link: "https://facebook.com/groups/stjosephalumni",
+        risk_challenge: "HM supportive attitude was lacking initially",
+        mitigation_taken: "Addressed HM concerns during SMC meet",
+        take_back: "Persistence is key",
+        proof_files: [],
+        media_content: "SMC meeting photos",
+        celebrated_status: "No",
+        entered_by: "Manager User",
+        entered_time: "2026-06-02, 11:30:00 AM",
+      }
     ];
-    localStorage.setItem('core_teams', JSON.stringify(defaultData));
+    localStorage.setItem("core_teams", JSON.stringify(defaultData));
     return defaultData;
   });
 
   useEffect(() => {
-    localStorage.setItem('core_teams', JSON.stringify(data));
+    localStorage.setItem("core_teams", JSON.stringify(data));
   }, [data]);
 
   const [formData, setFormData] = useState<FormData>(EMPTY_FORM);
@@ -118,14 +209,74 @@ export default function CoreTeamFormation() {
 
   const validate = () => {
     const e: Partial<Record<keyof FormData, string>> = {};
+    if (!formData.district) e.district = "District is required";
+    if (!formData.block) e.block = "Block is required";
     if (!formData.school_name.trim()) e.school_name = "School name is required";
-    if (!formData.district.trim()) e.district = "District is required";
-    if (!formData.block.trim()) e.block = "Block is required";
-    if (!formData.core_team_name.trim()) e.core_team_name = "Core team name is required";
-    if (!formData.how_many_members) e.how_many_members = "Headcount is required";
-    else if (Number(formData.how_many_members) <= 0) e.how_many_members = "Must be greater than 0";
+    if (!formData.school_type) e.school_type = "School type is required";
+    if (!formData.school_category) e.school_category = "School category is required";
+    if (!formData.hm_supportive) e.hm_supportive = "HM Supportive status is required";
+    if (!formData.smc_alumni_support) e.smc_alumni_support = "SMC Alumni Support is required";
+    if (!formData.ambassador_alumni_support) e.ambassador_alumni_support = "Ambassador Alumni Support is required";
+    if (!formData.approach_taken) e.approach_taken = "Approach taken is required";
+    if (!formData.period_started) e.period_started = "Period started is required";
+    if (!formData.period_ended) e.period_ended = "Period ended is required";
+    if (formData.core_team_count === "") e.core_team_count = "Core Team Count is required";
+    if (formData.core_team_platforms.length === 0) e.core_team_platforms = "Select at least one platform" as any;
+    if (formData.core_team_platforms.includes("Others") && !formData.other_platform.trim()) {
+      e.other_platform = "Please specify other platform name";
+    }
+    if (!formData.celebrated_status) e.celebrated_status = "Celebrated status is required";
+
     setErrors(e);
     return Object.keys(e).length === 0;
+  };
+
+  const handleMultipleFilesUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files) {
+      const newFilesPromise = Array.from(files).map((file) => {
+        return new Promise<ProofFile>((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            resolve({
+              name: file.name,
+              type: file.type,
+              content: reader.result as string,
+            });
+          };
+          reader.readAsDataURL(file);
+        });
+      });
+
+      Promise.all(newFilesPromise).then((uploadedFiles) => {
+        setFormData((prev) => ({
+          ...prev,
+          proof_files: [...prev.proof_files, ...uploadedFiles],
+        }));
+      });
+    }
+  };
+
+  const removeProofFile = (indexToRemove: number) => {
+    setFormData((prev) => ({
+      ...prev,
+      proof_files: prev.proof_files.filter((_, idx) => idx !== indexToRemove),
+    }));
+  };
+
+  const handlePlatformCheckboxChange = (platform: string) => {
+    setFormData((prev) => {
+      const isChecked = prev.core_team_platforms.includes(platform);
+      const updatedPlatforms = isChecked
+        ? prev.core_team_platforms.filter((p) => p !== platform)
+        : [...prev.core_team_platforms, platform];
+
+      return {
+        ...prev,
+        core_team_platforms: updatedPlatforms,
+        other_platform: updatedPlatforms.includes("Others") ? prev.other_platform : "",
+      };
+    });
   };
 
   const openAdd = () => {
@@ -137,14 +288,27 @@ export default function CoreTeamFormation() {
 
   const openEdit = (item: CoreTeamRecord) => {
     setFormData({
-      school_name: item.school_name,
       district: item.district || "",
       block: item.block || "",
-      core_team_name: item.core_team_name,
-      core_team_formation: item.core_team_formation,
-      how_many_members: String(item.how_many_members),
-      proof: null,
-      remarks: item.remarks,
+      school_name: item.school_name,
+      school_type: item.school_type || "Primary School",
+      school_category: item.school_category || "Career Guidance",
+      hm_supportive: item.hm_supportive || "No",
+      smc_alumni_support: item.smc_alumni_support || "No",
+      ambassador_alumni_support: item.ambassador_alumni_support || "No",
+      approach_taken: item.approach_taken || "SHG Members - SMC",
+      period_started: item.period_started || "",
+      period_ended: item.period_ended || "",
+      core_team_count: String(item.core_team_count),
+      core_team_platforms: item.core_team_platforms || [],
+      other_platform: item.other_platform || "",
+      platform_link: item.platform_link || "",
+      risk_challenge: item.risk_challenge || "",
+      mitigation_taken: item.mitigation_taken || "",
+      take_back: item.take_back || "",
+      proof_files: item.proof_files || [],
+      media_content: item.media_content || "",
+      celebrated_status: item.celebrated_status || "No",
     });
     setErrors({});
     setEditId(item.id);
@@ -153,36 +317,67 @@ export default function CoreTeamFormation() {
 
   const handleSave = () => {
     if (!validate()) return;
+    const calculatedStatus = Number(formData.core_team_count) > 25 ? "Formed" : "Not Formed";
 
     if (editId !== null) {
-      setData(data.map((item) =>
-        item.id === editId
-          ? {
-              ...item,
-              school_name: formData.school_name,
-              district: formData.district,
-              block: formData.block,
-              core_team_name: formData.core_team_name,
-              core_team_formation: formData.core_team_formation,
-              how_many_members: Number(formData.how_many_members),
-              proof: formData.proof ?? item.proof,
-              remarks: formData.remarks,
-            }
-          : item
-      ));
+      setData(
+        data.map((item) =>
+          item.id === editId
+            ? {
+                ...item,
+                district: formData.district,
+                block: formData.block,
+                school_name: formData.school_name,
+                school_type: formData.school_type,
+                school_category: formData.school_category,
+                hm_supportive: formData.hm_supportive,
+                smc_alumni_support: formData.smc_alumni_support,
+                ambassador_alumni_support: formData.ambassador_alumni_support,
+                approach_taken: formData.approach_taken,
+                period_started: formData.period_started,
+                period_ended: formData.period_ended,
+                core_team_count: Number(formData.core_team_count),
+                core_team_status: calculatedStatus,
+                core_team_platforms: formData.core_team_platforms,
+                other_platform: formData.core_team_platforms.includes("Others") ? formData.other_platform : "",
+                platform_link: formData.platform_link,
+                risk_challenge: formData.risk_challenge,
+                mitigation_taken: formData.mitigation_taken,
+                take_back: formData.take_back,
+                proof_files: formData.proof_files,
+                media_content: formData.media_content,
+                celebrated_status: formData.celebrated_status,
+              }
+            : item
+        )
+      );
     } else {
       setData([
         ...data,
         {
           id: Date.now(),
-          school_name: formData.school_name,
           district: formData.district,
           block: formData.block,
-          core_team_name: formData.core_team_name,
-          core_team_formation: formData.core_team_formation,
-          how_many_members: Number(formData.how_many_members),
-          proof: formData.proof,
-          remarks: formData.remarks,
+          school_name: formData.school_name,
+          school_type: formData.school_type,
+          school_category: formData.school_category,
+          hm_supportive: formData.hm_supportive,
+          smc_alumni_support: formData.smc_alumni_support,
+          ambassador_alumni_support: formData.ambassador_alumni_support,
+          approach_taken: formData.approach_taken,
+          period_started: formData.period_started,
+          period_ended: formData.period_ended,
+          core_team_count: Number(formData.core_team_count),
+          core_team_status: calculatedStatus,
+          core_team_platforms: formData.core_team_platforms,
+          other_platform: formData.core_team_platforms.includes("Others") ? formData.other_platform : "",
+          platform_link: formData.platform_link,
+          risk_challenge: formData.risk_challenge,
+          mitigation_taken: formData.mitigation_taken,
+          take_back: formData.take_back,
+          proof_files: formData.proof_files,
+          media_content: formData.media_content,
+          celebrated_status: formData.celebrated_status,
           entered_by: currentUser?.name || 'Unknown',
           entered_time: new Date().toLocaleString(),
         },
@@ -196,27 +391,154 @@ export default function CoreTeamFormation() {
     setDeleteConfirm(null);
   };
 
-  const filteredData = data.filter((item) =>
-    (item.school_name.toLowerCase().includes(search.toLowerCase()) ||
-     item.core_team_name.toLowerCase().includes(search.toLowerCase())) &&
-    (enteredByFilter ? (item.entered_by?.toLowerCase().includes(enteredByFilter.toLowerCase())) : true) &&
-    (districtFilter ? item.district === districtFilter : true) &&
-    (blockFilter ? item.block === blockFilter : true)
-  );
+  const filteredData = data.filter((item) => {
+    // 1. Search (by School Name)
+    if (search && !item.school_name.toLowerCase().includes(search.toLowerCase())) return false;
 
-  const totalMembers = filteredData.reduce((sum, d) => sum + d.how_many_members, 0);
-  const formedCount = filteredData.filter((d) => d.core_team_formation === "Yes").length;
+    // 2. District Filter
+    if (districtFilter && item.district !== districtFilter) return false;
+
+    // 3. Block Filter
+    if (blockFilter && item.block !== blockFilter) return false;
+
+    // 4. Entered By Filter
+    if (enteredByFilter && item.entered_by !== enteredByFilter) return false;
+
+    // 5. School Type Filter
+    if (schoolTypeFilter && item.school_type !== schoolTypeFilter) return false;
+
+    // 6. School Category Filter
+    if (schoolCategoryFilter && item.school_category !== schoolCategoryFilter) return false;
+
+    // 7. HM Supportive Filter
+    if (hmSupportiveFilter && item.hm_supportive !== hmSupportiveFilter) return false;
+
+    // 8. SMC Alumni Support Filter
+    if (smcAlumniSupportFilter && item.smc_alumni_support !== smcAlumniSupportFilter) return false;
+
+    // 9. Ambassador Alumni Support Filter
+    if (ambassadorAlumniSupportFilter && item.ambassador_alumni_support !== ambassadorAlumniSupportFilter) return false;
+
+    // 10. Celebrated Status Filter
+    if (celebratedStatusFilter && item.celebrated_status !== celebratedStatusFilter) return false;
+
+    // 11. Core Team Status Filter
+    if (coreTeamStatusFilter && item.core_team_status !== coreTeamStatusFilter) return false;
+
+    // 12. Approach Taken Filter
+    if (approachTakenFilter && item.approach_taken !== approachTakenFilter) return false;
+
+    // 13. Min Core Team Count
+    if (minCoreTeamCountFilter && (item.core_team_count || 0) < Number(minCoreTeamCountFilter)) return false;
+
+    // 14. Period Start Range
+    if (startDateFilter && item.period_started && item.period_started < startDateFilter) return false;
+
+    // 15. Period End Range
+    if (endDateFilter && item.period_ended && item.period_ended > endDateFilter) return false;
+
+    // 16. Platform Filter
+    if (platformFilter && !(item.core_team_platforms || []).includes(platformFilter)) return false;
+
+    // 17. Platform Link Filter
+    if (platformLinkFilter && !item.platform_link?.toLowerCase().includes(platformLinkFilter.toLowerCase())) return false;
+
+    // 18. Risk & Challenge Filter
+    if (riskChallengeFilter && !item.risk_challenge?.toLowerCase().includes(riskChallengeFilter.toLowerCase())) return false;
+
+    // 19. Mitigation Taken Filter
+    if (mitigationTakenFilter && !item.mitigation_taken?.toLowerCase().includes(mitigationTakenFilter.toLowerCase())) return false;
+
+    // 20. Take Back Filter
+    if (takeBackFilter && !item.take_back?.toLowerCase().includes(takeBackFilter.toLowerCase())) return false;
+
+    // 21. Proof Filter
+    if (proofFilter) {
+      const hasProofs = item.proof_files && item.proof_files.length > 0;
+      if (proofFilter === "Yes" && !hasProofs) return false;
+      if (proofFilter === "No" && hasProofs) return false;
+    }
+
+    // 22. Media Content Filter
+    if (mediaContentFilter && !item.media_content?.toLowerCase().includes(mediaContentFilter.toLowerCase())) return false;
+
+    // 23. Entered Time Filter
+    if (enteredTimeFilter && !item.entered_time?.toLowerCase().includes(enteredTimeFilter.toLowerCase())) return false;
+
+    return true;
+  });
+
+  const activeFiltersCount = useMemo(() => {
+    let count = 0;
+    if (districtFilter) count++;
+    if (blockFilter) count++;
+    if (enteredByFilter) count++;
+    if (schoolTypeFilter) count++;
+    if (schoolCategoryFilter) count++;
+    if (hmSupportiveFilter) count++;
+    if (smcAlumniSupportFilter) count++;
+    if (ambassadorAlumniSupportFilter) count++;
+    if (celebratedStatusFilter) count++;
+    if (coreTeamStatusFilter) count++;
+    if (approachTakenFilter) count++;
+    if (minCoreTeamCountFilter) count++;
+    if (startDateFilter) count++;
+    if (endDateFilter) count++;
+    if (platformFilter) count++;
+    if (platformLinkFilter) count++;
+    if (riskChallengeFilter) count++;
+    if (mitigationTakenFilter) count++;
+    if (takeBackFilter) count++;
+    if (proofFilter) count++;
+    if (mediaContentFilter) count++;
+    if (enteredTimeFilter) count++;
+    return count;
+  }, [
+    districtFilter, blockFilter, enteredByFilter, schoolTypeFilter, schoolCategoryFilter,
+    hmSupportiveFilter, smcAlumniSupportFilter, ambassadorAlumniSupportFilter, celebratedStatusFilter,
+    coreTeamStatusFilter, approachTakenFilter, minCoreTeamCountFilter, startDateFilter, endDateFilter, platformFilter,
+    platformLinkFilter, riskChallengeFilter, mitigationTakenFilter, takeBackFilter, proofFilter, mediaContentFilter, enteredTimeFilter
+  ]);
+
+  const resetAllFilters = () => {
+    setSearch("");
+    setDistrictFilter("");
+    setBlockFilter("");
+    setEnteredByFilter("");
+    setSchoolTypeFilter("");
+    setSchoolCategoryFilter("");
+    setHmSupportiveFilter("");
+    setSmcAlumniSupportFilter("");
+    setAmbassadorAlumniSupportFilter("");
+    setCelebratedStatusFilter("");
+    setCoreTeamStatusFilter("");
+    setApproachTakenFilter("");
+    setMinCoreTeamCountFilter("");
+    setStartDateFilter("");
+    setEndDateFilter("");
+    setPlatformFilter("");
+    setPlatformLinkFilter("");
+    setRiskChallengeFilter("");
+    setMitigationTakenFilter("");
+    setTakeBackFilter("");
+    setProofFilter("");
+    setMediaContentFilter("");
+    setEnteredTimeFilter("");
+  };
+
+  const totalMembers = filteredData.reduce((sum, d) => sum + (d.core_team_count || 0), 0);
+  const formedCount = filteredData.filter((d) => d.core_team_status === "Formed").length;
 
   return (
     <div
       style={{ fontFamily: "'DM Sans', 'Segoe UI', sans-serif" }}
       className="min-h-screen bg-[#f0f4f9]"
     >
-      {/* Top Header Bar */}
+      {/* ===== TOP HEADER BAR ===== */}
       <div className="bg-white border-b border-slate-200 px-8 py-4 flex items-center justify-between sticky top-0 z-30 shadow-sm">
         <div className="flex items-center gap-4">
           <BackButton />
-          <div className="h-6 w-px bg-slate-200" />
+          <div className="h-5 w-px bg-slate-200" />
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-lg bg-violet-600 flex items-center justify-center">
               <Users size={16} className="text-white" />
@@ -224,9 +546,10 @@ export default function CoreTeamFormation() {
             <span className="font-semibold text-slate-800 text-sm">Core Team Formation</span>
           </div>
         </div>
+
         <button
           onClick={openAdd}
-          className="flex items-center gap-2 bg-violet-600 hover:bg-violet-700 active:scale-95 text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition-all shadow-sm shadow-violet-200 animate-fade-in"
+          className="flex items-center gap-2 bg-violet-600 hover:bg-violet-700 active:scale-95 text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition-all shadow-sm shadow-violet-200"
         >
           <Plus size={16} />
           Add Core Team
@@ -234,19 +557,19 @@ export default function CoreTeamFormation() {
       </div>
 
       <div className="max-w-[1400px] mx-auto px-8 py-8">
-        {/* Page Title */}
+        {/* PAGE TITLE */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Alumni Core Team Formation</h1>
           <p className="text-slate-500 mt-1 text-sm">Form and structure school-level alumni core committees and representatives.</p>
         </div>
 
-        {/* Stats Row */}
+        {/* STATS ROW */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8">
           {[
             {
-              label: "Total Registered Committees",
+              label: "Registered Committees",
               value: filteredData.length,
-              icon: <Users size={20} className="text-blue-600" />,
+              icon: <School size={20} className="text-blue-600" />,
               bg: "bg-blue-50",
               accent: "text-blue-600",
             },
@@ -265,7 +588,10 @@ export default function CoreTeamFormation() {
               accent: "text-violet-600",
             },
           ].map((stat) => (
-            <div key={stat.label} className="bg-white rounded-2xl px-6 py-5 border border-slate-200 flex items-center gap-4 shadow-sm">
+            <div
+              key={stat.label}
+              className="bg-white rounded-2xl px-6 py-5 border border-slate-200 flex items-center gap-4 shadow-sm"
+            >
               <div className={`w-12 h-12 rounded-xl ${stat.bg} flex items-center justify-center flex-shrink-0`}>
                 {stat.icon}
               </div>
@@ -277,100 +603,438 @@ export default function CoreTeamFormation() {
           ))}
         </div>
 
-        {/* Search & Filter */}
+        {/* Search & Advanced Filters Trigger */}
         <div className="flex flex-col md:flex-row items-stretch md:items-center gap-4 mb-5">
           {/* Search */}
           <div className="bg-white rounded-2xl border border-slate-200 px-5 py-4 flex-1 flex items-center gap-3 shadow-sm">
             <Search size={18} className="text-slate-400 flex-shrink-0" />
             <input
               type="text"
-              placeholder="Search by school or team name..."
+              placeholder="Search by school name..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="flex-1 bg-transparent text-sm text-slate-700 placeholder:text-slate-400 outline-none"
             />
             {search && (
-              <button onClick={() => setSearch("")} className="text-slate-400 hover:text-slate-600">
+              <button onClick={() => setSearch("")} className="text-slate-400 hover:text-slate-600 cursor-pointer">
                 <X size={16} />
               </button>
             )}
           </div>
 
-          {/* District Filter */}
-          <div className="bg-white rounded-2xl border border-slate-200 px-5 py-4 flex items-center gap-3 shadow-sm min-w-[200px]">
-            <select
-              value={districtFilter}
-              onChange={(e) => {
-                setDistrictFilter(e.target.value);
-                setBlockFilter(""); // Reset block filter when district changes
-              }}
-              className="flex-1 bg-transparent text-sm text-slate-700 placeholder:text-slate-400 outline-none cursor-pointer"
-            >
-              <option value="">All Districts</option>
-              {DISTRICTS.map((d) => (
-                <option key={d} value={d}>
-                  {d}
-                </option>
-              ))}
-            </select>
-            {districtFilter && (
-              <button onClick={() => { setDistrictFilter(""); setBlockFilter(""); }} className="text-slate-400 hover:text-slate-600">
-                <X size={16} />
-              </button>
+          {/* Toggle Button */}
+          <button
+            onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+            className={`flex items-center justify-center gap-2 h-14 px-6 rounded-2xl border text-sm font-semibold transition-all cursor-pointer ${
+              showAdvancedFilters || activeFiltersCount > 0
+                ? "bg-violet-50 border-violet-200 text-violet-600 shadow-sm"
+                : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
+            }`}
+          >
+            <span>Advanced Filters</span>
+            {activeFiltersCount > 0 && (
+              <span className="w-5 h-5 rounded-full bg-violet-600 text-white text-[10px] flex items-center justify-center font-bold">
+                {activeFiltersCount}
+              </span>
             )}
-          </div>
+          </button>
 
-          {/* Block Filter */}
-          <div className="bg-white rounded-2xl border border-slate-200 px-5 py-4 flex items-center gap-3 shadow-sm min-w-[200px]">
-            <select
-              value={blockFilter}
-              onChange={(e) => setBlockFilter(e.target.value)}
-              disabled={!districtFilter}
-              className="flex-1 bg-transparent text-sm text-slate-700 placeholder:text-slate-400 outline-none cursor-pointer disabled:opacity-50"
+          {/* Reset Button */}
+          {(search || activeFiltersCount > 0) && (
+            <button
+              onClick={resetAllFilters}
+              className="flex items-center justify-center gap-1.5 h-14 px-6 rounded-2xl border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-600 text-sm font-semibold transition-all cursor-pointer"
             >
-              <option value="">
-                {districtFilter ? "All Blocks" : "Select District First"}
-              </option>
-              {districtFilter &&
-                (DISTRICT_BLOCKS[districtFilter] || []).map((b) => (
-                  <option key={b} value={b}>
-                    {b}
-                  </option>
-                ))}
-            </select>
-            {blockFilter && (
-              <button onClick={() => setBlockFilter("")} className="text-slate-400 hover:text-slate-600">
-                <X size={16} />
-              </button>
-            )}
-          </div>
+              <X size={16} />
+              Reset All
+            </button>
+          )}
+        </div>
 
-          {/* Entered By Filter */}
-          <div className="bg-white rounded-2xl border border-slate-200 px-5 py-4 flex items-center gap-3 shadow-sm min-w-[200px]">
-            <select
-              value={enteredByFilter}
-              onChange={(e) => setEnteredByFilter(e.target.value)}
-              className="flex-1 bg-transparent text-sm text-slate-700 placeholder:text-slate-400 outline-none cursor-pointer"
-            >
-              <option value="">All entered by</option>
-              {Array.from(new Set(data.map(item => item.entered_by).filter(Boolean))).map(name => (
-                <option key={name} value={name}>{name}</option>
-              ))}
-            </select>
-            {enteredByFilter && (
-              <button onClick={() => setEnteredByFilter("")} className="text-slate-400 hover:text-slate-600">
-                <X size={16} />
-              </button>
-            )}
+        {/* Collapsible Advanced Filters Panel */}
+        {showAdvancedFilters && (
+          <div className="bg-white border border-slate-200 rounded-3xl p-6 mb-6 shadow-sm grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-5 animate-slide-down">
+            {/* District */}
+            <div className="flex flex-col">
+              <label className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-1.5">District</label>
+              <div className="relative">
+                <select
+                  value={districtFilter}
+                  onChange={(e) => {
+                    setDistrictFilter(e.target.value);
+                    setBlockFilter("");
+                  }}
+                  className="w-full bg-slate-550 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-700 outline-none appearance-none pr-9 cursor-pointer"
+                >
+                  <option value="">All Districts</option>
+                  {DISTRICTS.map((d) => (
+                    <option key={d} value={d}>{d}</option>
+                  ))}
+                </select>
+                <ChevronDown size={15} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+              </div>
+            </div>
+
+            {/* Block */}
+            <div className="flex flex-col">
+              <label className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-1.5">Block</label>
+              <div className="relative">
+                <select
+                  value={blockFilter}
+                  onChange={(e) => setBlockFilter(e.target.value)}
+                  disabled={!districtFilter}
+                  className="w-full bg-slate-550 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-700 outline-none appearance-none pr-9 cursor-pointer disabled:opacity-50"
+                >
+                  <option value="">{districtFilter ? "All Blocks" : "Select District First"}</option>
+                  {districtFilter && (DISTRICT_BLOCKS[districtFilter] || []).map((b) => (
+                    <option key={b} value={b}>{b}</option>
+                  ))}
+                </select>
+                <ChevronDown size={15} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+              </div>
+            </div>
+
+            {/* School Type */}
+            <div className="flex flex-col">
+              <label className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-1.5">School Type</label>
+              <div className="relative">
+                <select
+                  value={schoolTypeFilter}
+                  onChange={(e) => setSchoolTypeFilter(e.target.value)}
+                  className="w-full bg-slate-550 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-700 outline-none appearance-none pr-9 cursor-pointer"
+                >
+                  <option value="">All Types</option>
+                  {["Primary School", "Middle School", "High School", "High Sec School"].map((t) => (
+                    <option key={t} value={t}>{t}</option>
+                  ))}
+                </select>
+                <ChevronDown size={15} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+              </div>
+            </div>
+
+            {/* School Category */}
+            <div className="flex flex-col">
+              <label className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-1.5">Category</label>
+              <div className="relative">
+                <select
+                  value={schoolCategoryFilter}
+                  onChange={(e) => setSchoolCategoryFilter(e.target.value)}
+                  className="w-full bg-slate-550 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-700 outline-none appearance-none pr-9 cursor-pointer"
+                >
+                  <option value="">All Categories</option>
+                  {["Career Guidance", "Centinary School", "Vetri Palligal School"].map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+                <ChevronDown size={15} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+              </div>
+            </div>
+
+            {/* HM Supportive */}
+            <div className="flex flex-col">
+              <label className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-1.5">HM Supportive</label>
+              <div className="relative">
+                <select
+                  value={hmSupportiveFilter}
+                  onChange={(e) => setHmSupportiveFilter(e.target.value)}
+                  className="w-full bg-slate-550 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-700 outline-none appearance-none pr-9 cursor-pointer"
+                >
+                  <option value="">All</option>
+                  <option value="Yes">Yes</option>
+                  <option value="No">No</option>
+                </select>
+                <ChevronDown size={15} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+              </div>
+            </div>
+
+            {/* SMC Support */}
+            <div className="flex flex-col">
+              <label className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-1.5">SMC Support</label>
+              <div className="relative">
+                <select
+                  value={smcAlumniSupportFilter}
+                  onChange={(e) => setSmcAlumniSupportFilter(e.target.value)}
+                  className="w-full bg-slate-550 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-700 outline-none appearance-none pr-9 cursor-pointer"
+                >
+                  <option value="">All</option>
+                  <option value="Yes">Yes</option>
+                  <option value="No">No</option>
+                </select>
+                <ChevronDown size={15} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+              </div>
+            </div>
+
+            {/* Ambassador Support */}
+            <div className="flex flex-col">
+              <label className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-1.5">Ambassador Support</label>
+              <div className="relative">
+                <select
+                  value={ambassadorAlumniSupportFilter}
+                  onChange={(e) => setAmbassadorAlumniSupportFilter(e.target.value)}
+                  className="w-full bg-slate-550 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-700 outline-none appearance-none pr-9 cursor-pointer"
+                >
+                  <option value="">All</option>
+                  <option value="Yes">Yes</option>
+                  <option value="No">No</option>
+                </select>
+                <ChevronDown size={15} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+              </div>
+            </div>
+
+            {/* Approach Taken */}
+            <div className="flex flex-col">
+              <label className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-1.5">Approach Taken</label>
+              <div className="relative">
+                <select
+                  value={approachTakenFilter}
+                  onChange={(e) => setApproachTakenFilter(e.target.value)}
+                  className="w-full bg-slate-550 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-700 outline-none appearance-none pr-9 cursor-pointer"
+                >
+                  <option value="">All Approaches</option>
+                  {[
+                    "SHG Members - SMC",
+                    "People Rep - SMC",
+                    "Key People -HM",
+                    "Mass Communication (Notice,Auto-announcement )",
+                    "People gathering Sports - Local - College Alumni",
+                    "Fans Club",
+                    "Organized Meet - Hm",
+                    "Celebration - Hm",
+                    "Ambassador"
+                  ].map((a) => (
+                    <option key={a} value={a}>{a}</option>
+                  ))}
+                </select>
+                <ChevronDown size={15} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+              </div>
+            </div>
+
+            {/* Period Started */}
+            <div className="flex flex-col">
+              <label className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-1.5">Started On/After</label>
+              <input
+                type="date"
+                value={startDateFilter}
+                onChange={(e) => setStartDateFilter(e.target.value)}
+                className="w-full bg-slate-550 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-700 outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-400 transition-all cursor-pointer font-medium"
+              />
+            </div>
+
+            {/* Period Ended */}
+            <div className="flex flex-col">
+              <label className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-1.5">Ended On/Before</label>
+              <input
+                type="date"
+                value={endDateFilter}
+                onChange={(e) => setEndDateFilter(e.target.value)}
+                className="w-full bg-slate-550 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-700 outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-400 transition-all cursor-pointer font-medium"
+              />
+            </div>
+
+            {/* Min Core Team Count */}
+            <div className="flex flex-col">
+              <label className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-1.5">Min Core Members</label>
+              <input
+                type="number"
+                placeholder="e.g. 5"
+                value={minCoreTeamCountFilter}
+                onChange={(e) => setMinCoreTeamCountFilter(e.target.value)}
+                className="w-full bg-slate-550 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-700 outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-400 transition-all placeholder:text-slate-300 font-medium"
+              />
+            </div>
+
+            {/* Core Team Status */}
+            <div className="flex flex-col">
+              <label className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-1.5">Core Team Status</label>
+              <div className="relative">
+                <select
+                  value={coreTeamStatusFilter}
+                  onChange={(e) => setCoreTeamStatusFilter(e.target.value)}
+                  className="w-full bg-slate-550 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-700 outline-none appearance-none pr-9 cursor-pointer"
+                >
+                  <option value="">All</option>
+                  <option value="Formed">Formed</option>
+                  <option value="Not Formed">Not Formed</option>
+                </select>
+                <ChevronDown size={15} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+              </div>
+            </div>
+
+            {/* Group Platform */}
+            <div className="flex flex-col">
+              <label className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-1.5">Group Platform</label>
+              <div className="relative">
+                <select
+                  value={platformFilter}
+                  onChange={(e) => setPlatformFilter(e.target.value)}
+                  className="w-full bg-slate-550 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-700 outline-none appearance-none pr-9 cursor-pointer"
+                >
+                  <option value="">All Platforms</option>
+                  {["WhatsApp", "Facebook", "Telegram", "Vizhuthugal App", "Others"].map((p) => (
+                    <option key={p} value={p}>{p}</option>
+                  ))}
+                </select>
+                <ChevronDown size={15} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+              </div>
+            </div>
+
+            {/* Platform Link */}
+            <div className="flex flex-col">
+              <label className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-1.5">Platform Link</label>
+              <input
+                type="text"
+                placeholder="Search link..."
+                value={platformLinkFilter}
+                onChange={(e) => setPlatformLinkFilter(e.target.value)}
+                className="w-full bg-slate-550 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-700 outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-400 transition-all placeholder:text-slate-300 font-medium"
+              />
+            </div>
+
+            {/* Risk & Challenge */}
+            <div className="flex flex-col">
+              <label className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-1.5">Risk & Challenge</label>
+              <input
+                type="text"
+                placeholder="Search risk..."
+                value={riskChallengeFilter}
+                onChange={(e) => setRiskChallengeFilter(e.target.value)}
+                className="w-full bg-slate-550 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-700 outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-400 transition-all placeholder:text-slate-300 font-medium"
+              />
+            </div>
+
+            {/* Mitigation Taken */}
+            <div className="flex flex-col">
+              <label className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-1.5">Mitigation Taken</label>
+              <input
+                type="text"
+                placeholder="Search mitigation..."
+                value={mitigationTakenFilter}
+                onChange={(e) => setMitigationTakenFilter(e.target.value)}
+                className="w-full bg-slate-550 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-700 outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-400 transition-all placeholder:text-slate-300 font-medium"
+              />
+            </div>
+
+            {/* Take Back */}
+            <div className="flex flex-col">
+              <label className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-1.5">Take Back</label>
+              <input
+                type="text"
+                placeholder="Search take back..."
+                value={takeBackFilter}
+                onChange={(e) => setTakeBackFilter(e.target.value)}
+                className="w-full bg-slate-550 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-700 outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-400 transition-all placeholder:text-slate-300 font-medium"
+              />
+            </div>
+
+            {/* Proof Upload Existence */}
+            <div className="flex flex-col">
+              <label className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-1.5">Proof Existence</label>
+              <div className="relative">
+                <select
+                  value={proofFilter}
+                  onChange={(e) => setProofFilter(e.target.value)}
+                  className="w-full bg-slate-550 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-700 outline-none appearance-none pr-9 cursor-pointer"
+                >
+                  <option value="">All</option>
+                  <option value="Yes">With Proofs</option>
+                  <option value="No">No Proofs</option>
+                </select>
+                <ChevronDown size={15} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+              </div>
+            </div>
+
+            {/* Media Content */}
+            <div className="flex flex-col">
+              <label className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-1.5">Media Title</label>
+              <input
+                type="text"
+                placeholder="Search media title..."
+                value={mediaContentFilter}
+                onChange={(e) => setMediaContentFilter(e.target.value)}
+                className="w-full bg-slate-550 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-700 outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-400 transition-all placeholder:text-slate-300 font-medium"
+              />
+            </div>
+
+            {/* Celebrated Status */}
+            <div className="flex flex-col">
+              <label className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-1.5">Celebrated</label>
+              <div className="relative">
+                <select
+                  value={celebratedStatusFilter}
+                  onChange={(e) => setCelebratedStatusFilter(e.target.value)}
+                  className="w-full bg-slate-550 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-700 outline-none appearance-none pr-9 cursor-pointer"
+                >
+                  <option value="">All</option>
+                  <option value="Yes">Yes</option>
+                  <option value="No">No</option>
+                </select>
+                <ChevronDown size={15} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+              </div>
+            </div>
+
+            {/* Entered By */}
+            <div className="flex flex-col">
+              <label className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-1.5">Entered By</label>
+              <div className="relative">
+                <select
+                  value={enteredByFilter}
+                  onChange={(e) => setEnteredByFilter(e.target.value)}
+                  className="w-full bg-slate-550 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-700 outline-none appearance-none pr-9 cursor-pointer"
+                >
+                  <option value="">All entered by</option>
+                  {Array.from(new Set(data.map(item => item.entered_by).filter(Boolean))).map(name => (
+                    <option key={name} value={name}>{name}</option>
+                  ))}
+                </select>
+                <ChevronDown size={15} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+              </div>
+            </div>
+
+            {/* Entered Time */}
+            <div className="flex flex-col">
+              <label className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-1.5">Entered Time</label>
+              <input
+                type="text"
+                placeholder="e.g. 2026-06 or AM/PM"
+                value={enteredTimeFilter}
+                onChange={(e) => setEnteredTimeFilter(e.target.value)}
+                className="w-full bg-slate-550 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-700 outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-400 transition-all placeholder:text-slate-300 font-medium"
+              />
+            </div>
           </div>
-        </div>{/* Table */}
+        )}
+
+        {/* TABLE */}
         <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-slate-900 text-white">
-                  {["Sl No", "School Name", "District", "Block", "Core Team Name", "Core Team Formation", "How Many Members", "Proof (images)", "Remarks", "Actions", "Entered By"].map((h) => (
-                    <th key={h} className="px-5 py-4 text-left font-semibold text-xs tracking-wider uppercase whitespace-nowrap">
+                  {[
+                    "S.No",
+                    "District",
+                    "Block",
+                    "School Name",
+                    "School Type",
+                    "School Category",
+                    "HM Supportive",
+                    "SMC Support",
+                    "Ambassador Support",
+                    "Approach",
+                    "Period Started",
+                    "Period Ended",
+                    "Core Team Count",
+                    "Core Team Status",
+                    "Platforms",
+                    "Celebrated",
+                    "Proofs",
+                    "Entered By",
+                    "Actions"
+                  ].map((h) => (
+                    <th
+                      key={h}
+                      className="px-5 py-4 text-left font-semibold text-xs tracking-wider uppercase whitespace-nowrap"
+                    >
                       {h}
                     </th>
                   ))}
@@ -379,39 +1043,90 @@ export default function CoreTeamFormation() {
               <tbody>
                 {filteredData.length === 0 ? (
                   <tr>
-                    <td colSpan={11} className="px-5 py-16 text-center text-slate-400 text-sm">
-                      No core teams found. Add one to get started.
+                    <td colSpan={19} className="px-5 py-16 text-center text-slate-400 text-sm">
+                      No core committees found. Add one to get started.
                     </td>
                   </tr>
                 ) : (
                   filteredData.map((item, index) => (
-                    <tr key={item.id} className="border-t border-slate-100 hover:bg-slate-50 transition-colors group">
-                      <td className="px-5 py-4 text-slate-400 font-medium">{String(index + 1).padStart(2, "0")}</td>
+                    <tr
+                      key={item.id}
+                      className="border-t border-slate-100 hover:bg-slate-50 transition-colors group"
+                    >
+                      <td className="px-5 py-4 text-slate-400 font-medium">
+                        {String(index + 1).padStart(2, "0")}
+                      </td>
+                      <td className="px-5 py-4 font-medium text-slate-700">{item.district}</td>
+                      <td className="px-5 py-4 text-slate-600">{item.block}</td>
                       <td className="px-5 py-4 font-semibold text-slate-800">{item.school_name}</td>
-                      <td className="px-5 py-4">{item.district}</td>
-                      <td className="px-5 py-4">{item.block}</td>
-                      <td className="px-5 py-4 text-slate-700 font-medium">{item.core_team_name}</td>
+                      <td className="px-5 py-4 text-slate-600">{item.school_type}</td>
                       <td className="px-5 py-4">
-                        <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${
-                          item.core_team_formation === "Yes"
-                            ? "bg-emerald-50 text-emerald-700"
-                            : "bg-red-50 text-red-600"
-                        }`}>
-                          {item.core_team_formation === "Yes" ? <CheckCircle size={12} /> : <XCircle size={12} />}
-                          {item.core_team_formation}
+                        <span className="bg-violet-50 text-violet-750 px-2 py-1 rounded text-xs font-semibold whitespace-nowrap">
+                          {item.school_category}
                         </span>
                       </td>
-                      <td className="px-5 py-4 font-bold text-slate-700">{item.how_many_members}</td>
-                      <td className="px-5 py-4 text-slate-500">
-                        {item.proof ? (
-                          <span className="inline-flex items-center gap-1 text-emerald-600 text-xs font-semibold">
-                            <ImageIcon size={14} /> Available
+                      <td className="px-5 py-4">
+                        <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold ${
+                          item.hm_supportive === "Yes" ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700"
+                        }`}>
+                          {item.hm_supportive}
+                        </span>
+                      </td>
+                      <td className="px-5 py-4">
+                        <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold ${
+                          item.smc_alumni_support === "Yes" ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700"
+                        }`}>
+                          {item.smc_alumni_support}
+                        </span>
+                      </td>
+                      <td className="px-5 py-4">
+                        <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold ${
+                          item.ambassador_alumni_support === "Yes" ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700"
+                        }`}>
+                          {item.ambassador_alumni_support}
+                        </span>
+                      </td>
+                      <td className="px-5 py-4 text-slate-600 max-w-[150px] truncate" title={item.approach_taken}>{item.approach_taken}</td>
+                      <td className="px-5 py-4 text-slate-500 whitespace-nowrap">{item.period_started}</td>
+                      <td className="px-5 py-4 text-slate-500 whitespace-nowrap">{item.period_ended}</td>
+                      <td className="px-5 py-4 font-bold text-slate-800">{item.core_team_count}</td>
+                      <td className="px-5 py-4">
+                        <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${
+                          item.core_team_status === "Formed" ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700"
+                        }`}>
+                          {item.core_team_status === "Formed" ? <CheckCircle size={12} /> : <XCircle size={12} />}
+                          {item.core_team_status}
+                        </span>
+                      </td>
+                      <td className="px-5 py-4">
+                        <div className="flex flex-wrap gap-1 max-w-[150px]">
+                          {(item.core_team_platforms || []).map((p) => (
+                            <span key={p} className="bg-slate-100 text-slate-700 px-2 py-0.5 rounded text-[10px] font-semibold">
+                              {p === "Others" && item.other_platform ? item.other_platform : p}
+                            </span>
+                          ))}
+                        </div>
+                      </td>
+                      <td className="px-5 py-4">
+                        <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold ${
+                          item.celebrated_status === "Yes" ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-500"
+                        }`}>
+                          {item.celebrated_status}
+                        </span>
+                      </td>
+                      <td className="px-5 py-4">
+                        {item.proof_files && item.proof_files.length > 0 ? (
+                          <span className="inline-flex items-center gap-1 text-emerald-600 font-semibold text-xs whitespace-nowrap">
+                            <ImageIcon size={13} /> {item.proof_files.length} proofs
                           </span>
                         ) : (
-                          <span className="text-slate-300 text-xs">No Proof</span>
+                          <span className="text-slate-300 text-xs">No file</span>
                         )}
                       </td>
-                      <td className="px-5 py-4 text-slate-500 max-w-[220px] truncate">{item.remarks || <span className="text-slate-300">—</span>}</td>
+                      <td className="px-5 py-4">
+                        <div className="font-semibold text-slate-800 text-xs">{item.entered_by || 'Unknown'}</div>
+                        <div className="text-[10px] text-slate-400 font-medium whitespace-nowrap">{item.entered_time || '—'}</div>
+                      </td>
                       <td className="px-5 py-4">
                         <div className="flex items-center gap-2 opacity-60 group-hover:opacity-100 transition-opacity">
                           <button
@@ -421,14 +1136,14 @@ export default function CoreTeamFormation() {
                           >
                             <Eye size={14} className="text-slate-600" />
                           </button>
-                          {currentUser?.role !== 'employee' && (
+                          {currentUser?.role !== "employee" && (
                             <>
                               <button
                                 onClick={() => openEdit(item)}
-                                className="w-8 h-8 rounded-lg bg-blue-50 hover:bg-blue-100 flex items-center justify-center transition-colors"
+                                className="w-8 h-8 rounded-lg bg-violet-550 hover:bg-violet-100 flex items-center justify-center transition-colors"
                                 title="Edit"
                               >
-                                <Pencil size={14} className="text-blue-600" />
+                                <Pencil size={14} className="text-violet-600" />
                               </button>
                               <button
                                 onClick={() => setDeleteConfirm(item.id)}
@@ -440,10 +1155,6 @@ export default function CoreTeamFormation() {
                             </>
                           )}
                         </div>
-                      </td>
-                      <td className="px-5 py-4">
-                        <div className="font-semibold text-slate-800 text-xs">{item.entered_by || 'Unknown'}</div>
-                        <div className="text-[10px] text-slate-400 font-medium">{item.entered_time || '—'}</div>
                       </td>
                     </tr>
                   ))
@@ -457,15 +1168,17 @@ export default function CoreTeamFormation() {
         </div>
       </div>
 
-      {/* Add / Edit Modal */}
+      {/* ===== ADD / EDIT MODAL ===== */}
       {showModal && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden animate-zoom-in">
+          <div className="bg-white w-full max-w-4xl rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
             {/* Modal Header */}
-            <div className="bg-slate-900 px-7 py-5 flex items-center justify-between">
+            <div className="bg-slate-900 px-7 py-5 flex items-center justify-between flex-shrink-0">
               <div>
-                <h2 className="text-white font-bold text-lg">{editId ? "Edit" : "Add"} Core Team</h2>
-                <p className="text-slate-400 text-xs mt-0.5">Fill in core team details</p>
+                <h2 className="text-white font-bold text-lg">
+                  {editId ? "Edit" : "Add"} Core Team Record
+                </h2>
+                <p className="text-slate-400 text-xs mt-0.5">Please provide committee representation, platform setup, and proofs of mobilization</p>
               </div>
               <button
                 onClick={() => setShowModal(false)}
@@ -476,113 +1189,358 @@ export default function CoreTeamFormation() {
             </div>
 
             {/* Modal Body */}
-            <div className="px-7 py-6 overflow-y-auto max-h-[70vh]">
-              <div className="grid grid-cols-2 gap-x-5 gap-y-5">
-                <Field label="School Name *" error={errors.school_name}>
-                  <input
-                    type="text"
-                    placeholder="e.g. Govt Hr Sec School"
-                    value={formData.school_name}
-                    onChange={(e) => setFormData({ ...formData, school_name: e.target.value })}
-                    className={inputCls(!!errors.school_name)}
-                  />
-                </Field>
-                <Field label="District *" error={errors.district}>
-                  <select value={formData.district} onChange={(e) => setFormData({ ...formData, district: e.target.value, block: "" })} className={inputCls(!!errors.district)}>
-                    <option value="">Select District</option>
-                    {DISTRICTS.map((d) => (
-                      <option key={d} value={d}>
-                        {d}
-                      </option>
-                    ))}
-                  </select>
-                </Field>
-                <Field label="Block *" error={errors.block}>
-                  <select
-  value={formData.block}
-  onChange={(e) => setFormData({ ...formData, block: e.target.value })}
-  className={inputCls(!!errors.block)}
-  disabled={!formData.district}>
+            <div className="px-7 py-6 overflow-y-auto flex-1">
+              <div className="space-y-8">
+                {/* SECTION 1: Location & School Details */}
+                <div>
+                  <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider mb-4 pb-1.5 border-b border-slate-100">
+                    1. School & Location Details
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <Field label="School Name *" error={errors.school_name}>
+                      <input
+                        type="text"
+                        placeholder="e.g. Govt Hr Sec School"
+                        value={formData.school_name}
+                        onChange={(e) => setFormData({ ...formData, school_name: e.target.value })}
+                        className={inputCls(!!errors.school_name)}
+                      />
+                    </Field>
 
-                    <option value="">Select Block</option>
-                    {formData.district &&
-                      (DISTRICT_BLOCKS[formData.district as keyof typeof DISTRICT_BLOCKS] || []).map((b) => (
-                        <option key={b} value={b}>
-                          {b}
-                        </option>
-                      ))}
-                  </select>
-                </Field>
+                    <Field label="District *" error={errors.district}>
+                      <div className="relative">
+                        <select
+                          value={formData.district}
+                          onChange={(e) => setFormData({ ...formData, district: e.target.value, block: "" })}
+                          className={inputCls(!!errors.district) + " appearance-none pr-9 cursor-pointer"}
+                        >
+                          <option value="">Select District</option>
+                          {DISTRICTS.map((d) => (
+                            <option key={d} value={d}>{d}</option>
+                          ))}
+                        </select>
+                        <ChevronDown size={15} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                      </div>
+                    </Field>
 
-                <Field label="Core Team Name *" error={errors.core_team_name}>
-                  <input
-                    type="text"
-                    placeholder="e.g. Madurai Alumni Association"
-                    value={formData.core_team_name}
-                    onChange={(e) => setFormData({ ...formData, core_team_name: e.target.value })}
-                    className={inputCls(!!errors.core_team_name)}
-                  />
-                </Field>
+                    <Field label="Block *" error={errors.block}>
+                      <div className="relative">
+                        <select
+                          value={formData.block}
+                          onChange={(e) => setFormData({ ...formData, block: e.target.value })}
+                          className={inputCls(!!errors.block) + " appearance-none pr-9 cursor-pointer"}
+                          disabled={!formData.district}
+                        >
+                          <option value="">{formData.district ? "Select Block" : "Select District First"}</option>
+                          {formData.district && (DISTRICT_BLOCKS[formData.district] || []).map((b) => (
+                            <option key={b} value={b}>{b}</option>
+                          ))}
+                        </select>
+                        <ChevronDown size={15} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                      </div>
+                    </Field>
 
-                <Field label="Core Team Formation">
-                  <select
-                    value={formData.core_team_formation}
-                    onChange={(e) => setFormData({ ...formData, core_team_formation: e.target.value })}
-                    className={inputCls(false)}
-                  >
-                    <option value="Yes">Yes</option>
-                    <option value="No">No</option>
-                  </select>
-                </Field>
+                    <Field label="School Type *" error={errors.school_type}>
+                      <div className="relative">
+                        <select
+                          value={formData.school_type}
+                          onChange={(e) => setFormData({ ...formData, school_type: e.target.value })}
+                          className={inputCls(!!errors.school_type) + " appearance-none pr-9 cursor-pointer"}
+                        >
+                          {["Primary School", "Middle School", "High School", "High Sec School"].map((t) => (
+                            <option key={t} value={t}>{t}</option>
+                          ))}
+                        </select>
+                        <ChevronDown size={15} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                      </div>
+                    </Field>
 
-                <Field label="How Many Members *" error={errors.how_many_members}>
-                  <input
-                    type="number"
-                    placeholder="e.g. 7"
-                    value={formData.how_many_members}
-                    onChange={(e) => setFormData({ ...formData, how_many_members: e.target.value })}
-                    className={inputCls(!!errors.how_many_members)}
-                  />
-                </Field>
+                    <Field label="School Category *" error={errors.school_category}>
+                      <div className="relative">
+                        <select
+                          value={formData.school_category}
+                          onChange={(e) => setFormData({ ...formData, school_category: e.target.value })}
+                          className={inputCls(!!errors.school_category) + " appearance-none pr-9 cursor-pointer"}
+                        >
+                          {["Career Guidance", "Centinary School", "Vetri Palligal School"].map((c) => (
+                            <option key={c} value={c}>{c}</option>
+                          ))}
+                        </select>
+                        <ChevronDown size={15} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                      </div>
+                    </Field>
+                  </div>
+                </div>
 
-                <Field label="Proof Image">
-                  <label className="flex items-center gap-3 border border-dashed border-slate-300 rounded-xl p-3 cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-colors">
-                    <Upload size={16} className="text-slate-400" />
-                    <span className="text-sm text-slate-500 truncate">
-                      {formData.proof ? (formData.proof as File).name : "Upload proof image..."}
-                    </span>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={(e) => setFormData({ ...formData, proof: e.target.files?.[0] || null })}
-                    />
-                  </label>
-                  {formData.proof && (
-                    <img
-                      src={URL.createObjectURL(formData.proof as File)}
-                      alt="Preview"
-                      className="mt-2 h-20 w-20 object-cover rounded-lg border border-slate-200"
-                    />
-                  )}
-                </Field>
+                {/* SECTION 2: Alumni Support & Committee Count */}
+                <div>
+                  <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider mb-4 pb-1.5 border-b border-slate-100">
+                    2. Committee Indicators & Support
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <Field label="HM Supportive *" error={errors.hm_supportive}>
+                      <div className="relative">
+                        <select
+                          value={formData.hm_supportive}
+                          onChange={(e) => setFormData({ ...formData, hm_supportive: e.target.value })}
+                          className={inputCls(!!errors.hm_supportive) + " appearance-none pr-9 cursor-pointer"}
+                        >
+                          <option value="Yes">Yes</option>
+                          <option value="No">No</option>
+                        </select>
+                        <ChevronDown size={15} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                      </div>
+                    </Field>
 
-                <div className="col-span-2">
-                  <Field label="Remarks">
-                    <textarea
-                      placeholder="Add any specific core team committee remarks..."
-                      value={formData.remarks}
-                      onChange={(e) => setFormData({ ...formData, remarks: e.target.value })}
-                      rows={3}
-                      className={inputCls(false) + " resize-none"}
-                    />
-                  </Field>
+                    <Field label="SMC Alumni Support *" error={errors.smc_alumni_support}>
+                      <div className="relative">
+                        <select
+                          value={formData.smc_alumni_support}
+                          onChange={(e) => setFormData({ ...formData, smc_alumni_support: e.target.value })}
+                          className={inputCls(!!errors.smc_alumni_support) + " appearance-none pr-9 cursor-pointer"}
+                        >
+                          <option value="Yes">Yes</option>
+                          <option value="No">No</option>
+                        </select>
+                        <ChevronDown size={15} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                      </div>
+                    </Field>
+
+                    <Field label="Ambassador Alumni Support *" error={errors.ambassador_alumni_support}>
+                      <div className="relative">
+                        <select
+                          value={formData.ambassador_alumni_support}
+                          onChange={(e) => setFormData({ ...formData, ambassador_alumni_support: e.target.value })}
+                          className={inputCls(!!errors.ambassador_alumni_support) + " appearance-none pr-9 cursor-pointer"}
+                        >
+                          <option value="Yes">Yes</option>
+                          <option value="No">No</option>
+                        </select>
+                        <ChevronDown size={15} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                      </div>
+                    </Field>
+
+                    <Field label="Core Team Count *" error={errors.core_team_count}>
+                      <input
+                        type="number"
+                        min="0"
+                        placeholder="e.g. 30"
+                        value={formData.core_team_count}
+                        onChange={(e) => setFormData({ ...formData, core_team_count: e.target.value })}
+                        className={inputCls(!!errors.core_team_count)}
+                      />
+                    </Field>
+                  </div>
+                </div>
+
+                {/* SECTION 3: Timeline & Platform Setup */}
+                <div>
+                  <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider mb-4 pb-1.5 border-b border-slate-100">
+                    3. Timeline, Platform & Approach
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <Field label="Period Started *" error={errors.period_started}>
+                      <input
+                        type="date"
+                        value={formData.period_started}
+                        onChange={(e) => setFormData({ ...formData, period_started: e.target.value })}
+                        className={inputCls(!!errors.period_started)}
+                      />
+                    </Field>
+
+                    <Field label="Period Ended *" error={errors.period_ended}>
+                      <input
+                        type="date"
+                        value={formData.period_ended}
+                        onChange={(e) => setFormData({ ...formData, period_ended: e.target.value })}
+                        className={inputCls(!!errors.period_ended)}
+                      />
+                    </Field>
+
+                    <Field label="Approach Taken *" error={errors.approach_taken}>
+                      <div className="relative">
+                        <select
+                          value={formData.approach_taken}
+                          onChange={(e) => setFormData({ ...formData, approach_taken: e.target.value })}
+                          className={inputCls(!!errors.approach_taken) + " appearance-none pr-9 cursor-pointer"}
+                        >
+                          {[
+                            "SHG Members - SMC",
+                            "People Rep - SMC",
+                            "Key People -HM",
+                            "Mass Communication (Notice,Auto-announcement )",
+                            "People gathering Sports - Local - College Alumni",
+                            "Fans Club",
+                            "Organized Meet - Hm",
+                            "Celebration - Hm",
+                            "Ambassador"
+                          ].map((a) => (
+                            <option key={a} value={a}>{a}</option>
+                          ))}
+                        </select>
+                        <ChevronDown size={15} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                      </div>
+                    </Field>
+
+                    <Field label="Core Team Platform (Choose Multiple) *" error={errors.core_team_platforms as any}>
+                      <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 grid grid-cols-2 gap-2 mt-1">
+                        {["WhatsApp", "Facebook", "Telegram", "Vizhuthugal App", "Others"].map((p) => (
+                          <label key={p} className="flex items-center gap-2 cursor-pointer select-none">
+                            <input
+                              type="checkbox"
+                              checked={formData.core_team_platforms.includes(p)}
+                              onChange={() => handlePlatformCheckboxChange(p)}
+                              className="w-4 h-4 accent-violet-600 rounded cursor-pointer"
+                            />
+                            <span className="text-xs text-slate-700 font-medium">{p}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </Field>
+
+                    {formData.core_team_platforms.includes("Others") && (
+                      <Field label="Specify Other Platform Name *" error={errors.other_platform}>
+                        <input
+                          type="text"
+                          placeholder="Please specify other platform name..."
+                          value={formData.other_platform}
+                          onChange={(e) => setFormData({ ...formData, other_platform: e.target.value })}
+                          className={inputCls(!!errors.other_platform)}
+                        />
+                      </Field>
+                    )}
+
+                    <Field label="Platform Link">
+                      <input
+                        type="url"
+                        placeholder="e.g. https://chat.whatsapp.com/..."
+                        value={formData.platform_link}
+                        onChange={(e) => setFormData({ ...formData, platform_link: e.target.value })}
+                        className={inputCls(false)}
+                      />
+                    </Field>
+                  </div>
+                </div>
+
+                {/* SECTION 4: Challenges & Proofs */}
+                <div>
+                  <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider mb-4 pb-1.5 border-b border-slate-100">
+                    4. Risks, Mitigation, Take Back & Proofs
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <Field label="Risk & Challenge">
+                      <textarea
+                        rows={2}
+                        placeholder="Mention any difficulties or challenges..."
+                        value={formData.risk_challenge}
+                        onChange={(e) => setFormData({ ...formData, risk_challenge: e.target.value })}
+                        className={inputCls(false) + " resize-none"}
+                      />
+                    </Field>
+
+                    <Field label="Mitigation Taken">
+                      <textarea
+                        rows={2}
+                        placeholder="Actions taken to solve the challenges..."
+                        value={formData.mitigation_taken}
+                        onChange={(e) => setFormData({ ...formData, mitigation_taken: e.target.value })}
+                        className={inputCls(false) + " resize-none"}
+                      />
+                    </Field>
+
+                    <Field label="Take Back">
+                      <textarea
+                        rows={2}
+                        placeholder="Key learnings or take-back from this event..."
+                        value={formData.take_back}
+                        onChange={(e) => setFormData({ ...formData, take_back: e.target.value })}
+                        className={inputCls(false) + " resize-none"}
+                      />
+                    </Field>
+
+                    <Field label="Celebrated Status *" error={errors.celebrated_status}>
+                      <div className="relative">
+                        <select
+                          value={formData.celebrated_status}
+                          onChange={(e) => setFormData({ ...formData, celebrated_status: e.target.value })}
+                          className={inputCls(!!errors.celebrated_status) + " appearance-none pr-9 cursor-pointer"}
+                        >
+                          <option value="Yes">Yes</option>
+                          <option value="No">No</option>
+                        </select>
+                        <ChevronDown size={15} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                      </div>
+                    </Field>
+
+                    <Field label="Media Content / Title">
+                      <input
+                        type="text"
+                        placeholder="e.g. SMC Meet Photo Album"
+                        value={formData.media_content}
+                        onChange={(e) => setFormData({ ...formData, media_content: e.target.value })}
+                        className={inputCls(false)}
+                      />
+                    </Field>
+
+                    <div className="col-span-1 md:col-span-2">
+                      <Field label="Proof Upload (Upload multiple photos, video, pdf)">
+                        <label className="flex items-center justify-center gap-3 border-2 border-dashed border-slate-300 hover:border-violet-400 hover:bg-violet-50 rounded-2xl p-6 cursor-pointer transition-all">
+                          <Upload size={24} className="text-slate-400" />
+                          <div className="text-left">
+                            <p className="text-sm font-semibold text-slate-700">Choose files to upload</p>
+                            <p className="text-xs text-slate-400 mt-0.5">Supports images, videos, and PDF documents</p>
+                          </div>
+                          <input
+                            type="file"
+                            multiple
+                            accept="image/*,video/*,.pdf"
+                            className="hidden"
+                            onChange={handleMultipleFilesUpload}
+                          />
+                        </label>
+
+                        {/* List uploaded files */}
+                        {formData.proof_files.length > 0 && (
+                          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 mt-4">
+                            {formData.proof_files.map((file, idx) => (
+                              <div key={idx} className="relative group bg-slate-50 border border-slate-200 rounded-xl p-2.5 flex flex-col items-center justify-between text-center min-h-[110px] overflow-hidden">
+                                <button
+                                  type="button"
+                                  onClick={() => removeProofFile(idx)}
+                                  className="absolute top-1 right-1 w-6 h-6 rounded-full bg-red-100 hover:bg-red-200 text-red-600 flex items-center justify-center transition-colors z-10"
+                                >
+                                  <X size={13} />
+                                </button>
+                                
+                                {file.type.startsWith("image/") ? (
+                                  <img
+                                    src={file.content}
+                                    alt="Upload preview"
+                                    className="w-full h-16 object-cover rounded-lg border border-slate-200"
+                                  />
+                                ) : file.type.startsWith("video/") ? (
+                                  <div className="w-full h-16 bg-violet-50 rounded-lg border border-violet-100 flex items-center justify-center">
+                                    <Video size={24} className="text-violet-500" />
+                                  </div>
+                                ) : (
+                                  <div className="w-full h-16 bg-red-50 rounded-lg border border-red-100 flex items-center justify-center">
+                                    <FileText size={24} className="text-red-500" />
+                                  </div>
+                                )}
+                                <span className="text-[10px] text-slate-500 truncate w-full mt-1.5 font-medium">{file.name}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </Field>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
 
             {/* Modal Footer */}
-            <div className="px-7 py-5 border-t border-slate-100 flex justify-end gap-3 bg-slate-50">
+            <div className="px-7 py-5 border-t border-slate-100 flex justify-end gap-3 bg-slate-50 flex-shrink-0">
               <button
                 onClick={() => setShowModal(false)}
                 className="px-5 py-2.5 rounded-xl text-sm font-semibold text-slate-600 bg-white border border-slate-200 hover:bg-slate-100 transition-colors"
@@ -593,48 +1551,93 @@ export default function CoreTeamFormation() {
                 onClick={handleSave}
                 className="px-6 py-2.5 rounded-xl text-sm font-semibold text-white bg-violet-600 hover:bg-violet-700 active:scale-95 transition-all shadow-sm shadow-violet-200"
               >
-                {editId ? "Update" : "Save"} Core Team
+                {editId ? "Update" : "Save"} Record
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* View Modal */}
+      {/* ===== VIEW MODAL ===== */}
       {viewItem && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden animate-zoom-in">
-            <div className="bg-slate-900 px-6 py-5 flex items-center justify-between">
-              <h2 className="text-white font-bold">Core Team Details</h2>
+          <div className="bg-white w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
+            <div className="bg-slate-900 px-6 py-5 flex items-center justify-between flex-shrink-0">
+              <h2 className="text-white font-bold">Core Team Record details</h2>
               <button onClick={() => setViewItem(null)} className="w-8 h-8 rounded-xl bg-slate-700 hover:bg-slate-600 flex items-center justify-center">
                 <X size={15} className="text-white" />
               </button>
             </div>
-            <div className="p-6 space-y-4">
-              {[
-                ["School Name", viewItem.school_name],
-                ["Core Team Name", viewItem.core_team_name],
-                ["Core Team Formation", viewItem.core_team_formation],
-                ["How Many Members", `${viewItem.how_many_members} members`],
-                ["Remarks", viewItem.remarks || "—"],
-              ].map(([label, value]) => (
-                <div key={label} className="flex justify-between items-start gap-4">
-                  <span className="text-xs font-semibold text-slate-400 uppercase tracking-wide w-36 flex-shrink-0">{label}</span>
-                  <span className="text-sm text-slate-700 font-medium text-right">{value}</span>
+            <div className="p-6 space-y-4 overflow-y-auto flex-1">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4 text-sm">
+                {[
+                  ["School Name", viewItem.school_name],
+                  ["District", viewItem.district],
+                  ["Block", viewItem.block],
+                  ["School Type", viewItem.school_type],
+                  ["School Category", viewItem.school_category],
+                  ["HM Supportive", viewItem.hm_supportive],
+                  ["SMC Alumni Support", viewItem.smc_alumni_support],
+                  ["Ambassador Alumni Support", viewItem.ambassador_alumni_support],
+                  ["Approach Taken", viewItem.approach_taken],
+                  ["Period Started", viewItem.period_started],
+                  ["Period Ended", viewItem.period_ended],
+                  ["Core Team Count", String(viewItem.core_team_count)],
+                  ["Core Team Status", viewItem.core_team_status],
+                  ["Group Platforms", (viewItem.core_team_platforms || []).map(p => p === "Others" && viewItem.other_platform ? viewItem.other_platform : p).join(", ")],
+                  ["Platform Link", viewItem.platform_link || "—"],
+                  ["Media Title", viewItem.media_content || "—"],
+                  ["Celebrated Status", viewItem.celebrated_status],
+                  ["Entered By", viewItem.entered_by || "—"],
+                  ["Entered Time", viewItem.entered_time || "—"]
+                ].map(([label, value]) => (
+                  <div key={label} className="border-b border-slate-50 pb-2">
+                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wide block">{label}</span>
+                    <span className="text-sm text-slate-700 font-medium mt-0.5 block">{value}</span>
+                  </div>
+                ))}
+
+                <div className="col-span-1 sm:col-span-2 border-b border-slate-50 pb-2">
+                  <span className="text-xs font-bold text-slate-400 uppercase tracking-wide block">Risk & Challenge</span>
+                  <span className="text-sm text-slate-700 font-medium mt-0.5 block">{viewItem.risk_challenge || "—"}</span>
                 </div>
-              ))}
-              {viewItem.proof && (
-                <div className="flex flex-col gap-2 mt-4 pt-4 border-t border-slate-100">
-                  <span className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Uploaded Proof Preview</span>
-                  {typeof viewItem.proof === "string" ? (
-                    <img src={viewItem.proof} alt="Proof" className="w-full h-40 object-cover rounded-xl border" />
-                  ) : (
-                    <img src={URL.createObjectURL(viewItem.proof as File)} alt="Proof" className="w-full h-40 object-cover rounded-xl border" />
-                  )}
+
+                <div className="col-span-1 sm:col-span-2 border-b border-slate-50 pb-2">
+                  <span className="text-xs font-bold text-slate-400 uppercase tracking-wide block">Mitigation Taken</span>
+                  <span className="text-sm text-slate-700 font-medium mt-0.5 block">{viewItem.mitigation_taken || "—"}</span>
                 </div>
-              )}
+
+                <div className="col-span-1 sm:col-span-2 border-b border-slate-50 pb-2">
+                  <span className="text-xs font-bold text-slate-400 uppercase tracking-wide block">Take Back</span>
+                  <span className="text-sm text-slate-700 font-medium mt-0.5 block">{viewItem.take_back || "—"}</span>
+                </div>
+
+                {viewItem.proof_files && viewItem.proof_files.length > 0 && (
+                  <div className="col-span-1 sm:col-span-2 mt-2">
+                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wide block mb-2">Uploaded Proofs</span>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                      {viewItem.proof_files.map((file, idx) => (
+                        <div key={idx} className="border border-slate-100 rounded-xl p-2 bg-slate-50 flex flex-col items-center justify-between text-center min-h-[100px]">
+                          {file.type.startsWith("image/") ? (
+                            <a href={file.content} target="_blank" rel="noopener noreferrer" className="w-full">
+                              <img src={file.content} alt="Proof" className="w-full h-16 object-cover rounded-lg border cursor-pointer hover:opacity-80" />
+                            </a>
+                          ) : file.type.startsWith("video/") ? (
+                            <video src={file.content} controls className="w-full h-16 rounded-lg object-cover" />
+                          ) : (
+                            <a href={file.content} download={file.name} className="w-full h-16 flex items-center justify-center bg-red-50 border border-red-100 rounded-lg hover:bg-red-100 transition-colors">
+                              <FileText size={24} className="text-red-500" />
+                            </a>
+                          )}
+                          <span className="text-[9px] text-slate-500 truncate w-full mt-1.5 font-medium">{file.name}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
-            <div className="px-6 pb-6">
+            <div className="px-6 pb-6 flex-shrink-0">
               <button
                 onClick={() => setViewItem(null)}
                 className="w-full py-2.5 rounded-xl text-sm font-semibold text-white bg-slate-900 hover:bg-slate-800 transition-colors"
@@ -646,15 +1649,17 @@ export default function CoreTeamFormation() {
         </div>
       )}
 
-      {/* Delete Confirm */}
+      {/* ===== DELETE CONFIRM ===== */}
       {deleteConfirm !== null && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white w-full max-w-sm rounded-3xl shadow-2xl p-7 text-center">
             <div className="w-14 h-14 rounded-2xl bg-red-50 flex items-center justify-center mx-auto mb-4">
               <Trash2 size={24} className="text-red-500" />
             </div>
-            <h3 className="font-bold text-slate-800 text-lg">Delete Core Team?</h3>
-            <p className="text-slate-500 text-sm mt-2 mb-6">This record will be permanently deleted.</p>
+            <h3 className="font-bold text-slate-800 text-lg">Delete Record?</h3>
+            <p className="text-slate-500 text-sm mt-2 mb-6">
+              This action cannot be undone. The core team record will be permanently removed.
+            </p>
             <div className="flex gap-3">
               <button
                 onClick={() => setDeleteConfirm(null)}
@@ -676,10 +1681,20 @@ export default function CoreTeamFormation() {
   );
 }
 
-function Field({ label, error, children }: { label: string; error?: string; children: React.ReactNode }) {
+function Field({
+  label,
+  error,
+  children,
+}: {
+  label: string;
+  error?: string;
+  children: React.ReactNode;
+}) {
   return (
     <div>
-      <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">{label}</label>
+      <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">
+        {label}
+      </label>
       {children}
       {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
     </div>
@@ -687,5 +1702,7 @@ function Field({ label, error, children }: { label: string; error?: string; chil
 }
 
 function inputCls(hasError: boolean) {
-  return `w-full border ${hasError ? "border-red-400 bg-red-50" : "border-slate-200"} rounded-xl px-3.5 py-2.5 text-sm text-slate-700 outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-400 transition-all placeholder:text-slate-300`;
+  return `w-full border ${
+    hasError ? "border-red-400 bg-red-50" : "border-slate-200"
+  } rounded-xl px-3.5 py-2.5 text-sm text-slate-700 outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-400 transition-all placeholder:text-slate-300`;
 }

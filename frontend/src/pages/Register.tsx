@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import api from '../services/api';
 
 export default function Register() {
 
@@ -43,7 +43,7 @@ export default function Register() {
 
       // Save in SQLite Database as Employee
       const todayStr = new Date(Date.now() - (new Date()).getTimezoneOffset() * 60000).toISOString().split('T')[0];
-      axios.post('http://127.0.0.1:8000/employees', {
+      api.post('/employees', {
         name: name,
         email: email,
         contact: phone,

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   FileText,
   CalendarDays,
@@ -267,11 +267,9 @@ export default function KPIS() {
           border-radius: 8px;
         }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: #94a3b8;
-        }
-      `}</style>
+          background: #94a3b8; }`}</style>
 
-      {/* ── Header ──────────────────────────────────── */}
+      {/* ── Header ─────────────────────────────────── */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5 mb-8">
         <div>
           <h1 className="text-4xl font-bold text-slate-800">KPI Reports</h1>
