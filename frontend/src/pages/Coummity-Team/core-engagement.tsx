@@ -1,96 +1,140 @@
 import { useState, useEffect, useMemo } from "react";
-import { Search, Plus, Eye, Pencil, Trash2, X, Users, CheckCircle, XCircle, Upload, Image as ImageIcon, ChevronDown } from "lucide-react";
+import { 
+  Search, Plus, Eye, Pencil, Trash2, X, Users, CheckCircle, 
+  XCircle, Upload, Image as ImageIcon, ChevronDown, DollarSign, FileText, Video 
+} from "lucide-react";
 import BackButton from "../../components/BackButton";
 import { DISTRICTS, DISTRICT_BLOCKS } from "../../utils/districtData";
+import api from "../../services/api";
+
+const mapToFrontend = (item: any): CoreEngagementRecord => ({
+  id: item.id,
+  district: item.district || "",
+  block: item.block || "",
+  school_name: item.school_name || "",
+  school_type: item.school_type || "Primary School",
+  school_category: item.school_category || "Career Guidance",
+  engagement_type: item.engagement_type || "SMC Meeting",
+  other_engagement_type: item.other_engagement_type || "",
+  alumni_count: item.alumni_count || 0,
+  amount_collected: item.amount_collected || 0,
+  proof_files: JSON.parse(item.proof_files || "[]"),
+  important_attendees: item.important_attendees || "",
+  remarks: item.remarks || "",
+  entered_by: item.entered_by || "Unknown",
+  entered_time: item.entered_time || "",
+});
+
+type ProofFile = {
+  name: string;
+  type: string;
+  content: string; // base64 string
+};
 
 type CoreEngagementRecord = {
   id: number;
-  core_team_name: string;
-  team_formation_done: string; // "Yes" or "No"
-  activity: string;
-  proof: string | File | null;
+  district: string;
+  block: string;
+  school_name: string;
+  school_type: string; // "Primary School", "Middle School", "High School", "High Sec School"
+  school_category: string; // "Career Guidance", "Centinary School", "Vetri Palligal School"
+  engagement_type: string; // SMC Meeting, Alumni Meet, Guest Lecture, Donation Drive, Others
+  other_engagement_type?: string;
+  alumni_count: number;
+  amount_collected: number;
+  proof_files: ProofFile[];
+  important_attendees: string;
   remarks: string;
-  district?: string;
-  block?: string;
   entered_by?: string;
   entered_time?: string;
 };
 
 type FormData = {
-  core_team_name: string;
-  team_formation_done: string;
-  activity: string;
-  proof: File | null;
-  remarks: string;
   district: string;
   block: string;
+  school_name: string;
+  school_type: string;
+  school_category: string;
+  engagement_type: string;
+  other_engagement_type: string;
+  alumni_count: string;
+  amount_collected: string;
+  proof_files: ProofFile[];
+  important_attendees: string;
+  remarks: string;
 };
 
 const EMPTY_FORM: FormData = {
-  core_team_name: "",
-  team_formation_done: "Yes",
-  activity: "",
-  proof: null,
-  remarks: "",
   district: "",
   block: "",
+  school_name: "",
+  school_type: "Primary School",
+  school_category: "Career Guidance",
+  engagement_type: "SMC Meeting",
+  other_engagement_type: "",
+  alumni_count: "",
+  amount_collected: "",
+  proof_files: [],
+  important_attendees: "",
+  remarks: "",
 };
+
+const ENGAGEMENT_TYPES = [
+  "SMC Meeting",
+  "Alumni Meet",
+  "Career Guidance Session",
+  "Donation Drive",
+  "Infrastructure Support",
+  "Academic Mentoring",
+  "Others"
+];
 
 export default function CoreEngagement() {
   const [search, setSearch] = useState("");
-  const [data, setData] = useState<CoreEngagementRecord[]>(() => {
-    const saved = localStorage.getItem('core_engagements');
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch (e) {
-        console.error(e);
-      }
-    }
-    const defaultData = [
-      {
-        id: 1,
-        core_team_name: "Madurai Alumni Core Team",
-        team_formation_done: "Yes",
-        activity: "Monthly Committee Meeting & Fundraising Planning",
-        proof: "https://via.placeholder.com/150",
-        remarks: "Discussed centenary celebration plans and local funding avenues.",
-      },
-      {
-        id: 2,
-        core_team_name: "St. Mary Alumni Association",
-        team_formation_done: "Yes",
-        activity: "Expert Alumni Guest Lecture on Career Guidance",
-        proof: null,
-        remarks: "Highly interactive session with 100+ students attending.",
-      },
-      {
-        id: 3,
-        core_team_name: "Salem Core Committee",
-        team_formation_done: "No",
-        activity: "Donation Campaign Launch for Smart Classroom",
-        proof: null,
-        remarks: "Alumni sponsoring desks and digital projectors.",
-      },
-    ];
-    localStorage.setItem('core_engagements', JSON.stringify(defaultData));
-    return defaultData;
-  });
   const [enteredByFilter, setEnteredByFilter] = useState("");
   const [districtFilter, setDistrictFilter] = useState("");
   const [blockFilter, setBlockFilter] = useState("");
-  const enteredByOptions = useMemo(() => {
-    const map = new Map<string, number>();
-    data.forEach(item => {
-      if (item.entered_by) {
-        map.set(item.entered_by, (map.get(item.entered_by) ?? 0) + 1);
-      }
-    });
-    return Array.from(map.entries()).map(([name, count]) => ({ name, count }));
-  }, [data]);
-  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [engagementTypeFilter, setEngagementTypeFilter] = useState("");
 
-  useState(() => {
+  // Advanced filters state
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [schoolTypeFilter, setSchoolTypeFilter] = useState("");
+  const [schoolCategoryFilter, setSchoolCategoryFilter] = useState("");
+  const [minAlumniFilter, setMinAlumniFilter] = useState("");
+  const [minAmountFilter, setMinAmountFilter] = useState("");
+  const [proofFilter, setProofFilter] = useState(""); // "" | "Yes" | "No"
+  const [importantAttendeesFilter, setImportantAttendeesFilter] = useState("");
+  const [remarksFilter, setRemarksFilter] = useState("");
+  const [enteredTimeFilter, setEnteredTimeFilter] = useState("");
+
+  const [data, setData] = useState<CoreEngagementRecord[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchRecords = async () => {
+    setLoading(true);
+    try {
+      const res = await api.get('/core-engagements');
+      const items = res.data;
+      if (Array.isArray(items)) {
+        setData(items.map(mapToFrontend));
+      }
+    } catch (err) {
+      console.error("FAILED TO FETCH CORE ENGAGEMENTS:", err);
+      // Fallback to localStorage if offline
+      const saved = localStorage.getItem('core_engagements');
+      if (saved) {
+        try {
+          setData(JSON.parse(saved));
+        } catch (e) {
+          console.error(e);
+        }
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     const userStr = localStorage.getItem('user');
     if (userStr) {
       try {
@@ -99,9 +143,8 @@ export default function CoreEngagement() {
         console.error(e);
       }
     }
-  });
-
-
+    fetchRecords();
+  }, []);
 
   useEffect(() => {
     localStorage.setItem('core_engagements', JSON.stringify(data));
@@ -114,14 +157,72 @@ export default function CoreEngagement() {
   const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
   const [viewItem, setViewItem] = useState<CoreEngagementRecord | null>(null);
 
+  const enteredByOptions = useMemo(() => {
+    const map = new Map<string, number>();
+    data.forEach(item => {
+      if (item.entered_by) {
+        map.set(item.entered_by, (map.get(item.entered_by) ?? 0) + 1);
+      }
+    });
+    return Array.from(map.entries()).map(([name, count]) => ({ name, count }));
+  }, [data]);
+
   const validate = () => {
     const e: Partial<Record<keyof FormData, string>> = {};
-    if (!formData.core_team_name.trim()) e.core_team_name = "Core team name is required";
-    if (!formData.activity.trim()) e.activity = "Activity detail is required";
-  if (!formData.district.trim()) e.district = "District is required";
-  if (!formData.block.trim()) e.block = "Block is required";
+    if (!formData.district) e.district = "District is required";
+    if (!formData.block) e.block = "Block is required";
+    if (!formData.school_name.trim()) e.school_name = "School name is required";
+    if (!formData.school_type) e.school_type = "School type is required";
+    if (!formData.school_category) e.school_category = "School category is required";
+    if (!formData.engagement_type) e.engagement_type = "Engagement type is required";
+    if (formData.engagement_type === "Others" && !formData.other_engagement_type.trim()) {
+      e.other_engagement_type = "Please specify other engagement type";
+    }
+    if (formData.alumni_count === "") {
+      e.alumni_count = "Number of alumni is required";
+    } else if (isNaN(Number(formData.alumni_count)) || Number(formData.alumni_count) < 0) {
+      e.alumni_count = "Must be a valid positive number";
+    }
+    if (formData.amount_collected === "") {
+      e.amount_collected = "Amount collected is required";
+    } else if (isNaN(Number(formData.amount_collected)) || Number(formData.amount_collected) < 0) {
+      e.amount_collected = "Must be a valid positive number";
+    }
     setErrors(e);
     return Object.keys(e).length === 0;
+  };
+
+  const handleMultipleFilesUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files) {
+      const newFilesPromise = Array.from(files).map((file) => {
+        return new Promise<ProofFile>((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            resolve({
+              name: file.name,
+              type: file.type,
+              content: reader.result as string,
+            });
+          };
+          reader.readAsDataURL(file);
+        });
+      });
+
+      Promise.all(newFilesPromise).then((uploadedFiles) => {
+        setFormData((prev) => ({
+          ...prev,
+          proof_files: [...prev.proof_files, ...uploadedFiles],
+        }));
+      });
+    }
+  };
+
+  const removeProofFile = (indexToRemove: number) => {
+    setFormData((prev) => ({
+      ...prev,
+      proof_files: prev.proof_files.filter((_, idx) => idx !== indexToRemove),
+    }));
   };
 
   const openAdd = () => {
@@ -133,71 +234,187 @@ export default function CoreEngagement() {
 
   const openEdit = (item: CoreEngagementRecord) => {
     setFormData({
-    core_team_name: item.core_team_name,
-    team_formation_done: item.team_formation_done,
-    activity: item.activity,
-    proof: null,
-    remarks: item.remarks,
-    district: item.district || "",
-    block: item.block || "",
-  });
+      district: item.district || "",
+      block: item.block || "",
+      school_name: item.school_name || "",
+      school_type: item.school_type || "Primary School",
+      school_category: item.school_category || "Career Guidance",
+      engagement_type: item.engagement_type || "SMC Meeting",
+      other_engagement_type: item.other_engagement_type || "",
+      alumni_count: String(item.alumni_count),
+      amount_collected: String(item.amount_collected),
+      proof_files: item.proof_files || [],
+      important_attendees: item.important_attendees || "",
+      remarks: item.remarks || "",
+    });
     setErrors({});
     setEditId(item.id);
     setShowModal(true);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!validate()) return;
 
-    if (editId !== null) {
-      setData(data.map((item) =>
-        item.id === editId
-          ? {
-              ...item,
-              core_team_name: formData.core_team_name,
-              team_formation_done: formData.team_formation_done,
-              activity: formData.activity,
-              proof: formData.proof ?? item.proof,
-              remarks: formData.remarks,
-              district: formData.district,
-              block: formData.block,
-            }
-          : item
-      ));
-    } else {
-      setData([
-        ...data,
-          {
-            id: Date.now(),
-            core_team_name: formData.core_team_name,
-            team_formation_done: formData.team_formation_done,
-            activity: formData.activity,
-            proof: formData.proof,
-            remarks: formData.remarks,
-            district: formData.district,
-            block: formData.block,
-            entered_by: currentUser?.name || 'Unknown',
-            entered_time: new Date().toLocaleString(),
-          },
-      ]);
+    try {
+      const payload = {
+        district: formData.district,
+        block: formData.block,
+        school_name: formData.school_name,
+        school_type: formData.school_type,
+        school_category: formData.school_category,
+        engagement_type: formData.engagement_type,
+        other_engagement_type: formData.engagement_type === "Others" ? formData.other_engagement_type : "",
+        alumni_count: Number(formData.alumni_count),
+        amount_collected: Number(formData.amount_collected),
+        proof_files: JSON.stringify(formData.proof_files || []),
+        important_attendees: formData.important_attendees,
+        remarks: formData.remarks,
+      };
+
+      if (editId !== null) {
+        // Find existing record to preserve entered_by / entered_time if any
+        const item = data.find((d) => d.id === editId);
+        const fullPayload = {
+          ...payload,
+          entered_by: item?.entered_by || currentUser?.name || 'Unknown',
+          entered_time: item?.entered_time || new Date().toLocaleString(),
+        };
+        await api.put(`/core-engagements/${editId}`, fullPayload);
+      } else {
+        const fullPayload = {
+          ...payload,
+          entered_by: currentUser?.name || 'Unknown',
+          entered_time: new Date().toLocaleString(),
+        };
+        await api.post('/core-engagements', fullPayload);
+      }
+      setShowModal(false);
+      fetchRecords();
+    } catch (err) {
+      console.error("FAILED TO SAVE CORE ENGAGEMENT:", err);
+      alert("Failed to save core engagement record.");
     }
-    setShowModal(false);
   };
 
-  const handleDelete = (id: number) => {
-    setData(data.filter((item) => item.id !== id));
-    setDeleteConfirm(null);
+  const handleDelete = async (id: number) => {
+    try {
+      await api.delete(`/core-engagements/${id}`);
+      setDeleteConfirm(null);
+      fetchRecords();
+    } catch (err) {
+      console.error("FAILED TO DELETE CORE ENGAGEMENT:", err);
+      alert("Failed to delete core engagement record.");
+    }
   };
 
-  const filteredData = data.filter((item) =>
-    (item.core_team_name.toLowerCase().includes(search.toLowerCase()) ||
-     item.activity.toLowerCase().includes(search.toLowerCase())) &&
-    (enteredByFilter ? (item.entered_by?.toLowerCase().includes(enteredByFilter.toLowerCase())) : true) &&
-    (districtFilter ? item.district === districtFilter : true) &&
-    (blockFilter ? item.block === blockFilter : true)
-  );
+  const filteredData = data.filter((item) => {
+    // 1. Search (general search by school_name, remarks, important_attendees)
+    if (search) {
+      const q = search.toLowerCase();
+      const matchSchool = item.school_name?.toLowerCase().includes(q);
+      const matchRemarks = item.remarks?.toLowerCase().includes(q);
+      const matchAttendees = item.important_attendees?.toLowerCase().includes(q);
+      if (!matchSchool && !matchRemarks && !matchAttendees) return false;
+    }
 
-  const activeCount = data.filter((d) => d.team_formation_done === "Yes").length;
+    // 2. District Filter
+    if (districtFilter && item.district !== districtFilter) return false;
+
+    // 3. Block Filter
+    if (blockFilter && item.block !== blockFilter) return false;
+
+    // 4. Engagement Type Filter
+    if (engagementTypeFilter && item.engagement_type !== engagementTypeFilter) return false;
+
+    // 5. Entered By Filter
+    if (enteredByFilter && item.entered_by !== enteredByFilter) return false;
+
+    // 6. School Type Filter
+    if (schoolTypeFilter && item.school_type !== schoolTypeFilter) return false;
+
+    // 7. School Category Filter
+    if (schoolCategoryFilter && item.school_category !== schoolCategoryFilter) return false;
+
+    // 8. Min Alumni Engaged
+    if (minAlumniFilter && (item.alumni_count || 0) < Number(minAlumniFilter)) return false;
+
+    // 9. Min Amount Collected
+    if (minAmountFilter && (item.amount_collected || 0) < Number(minAmountFilter)) return false;
+
+    // 10. Proof Filter
+    if (proofFilter) {
+      const hasProofs = item.proof_files && item.proof_files.length > 0;
+      if (proofFilter === "Yes" && !hasProofs) return false;
+      if (proofFilter === "No" && hasProofs) return false;
+    }
+
+    // 11. Important Attendees Filter
+    if (importantAttendeesFilter && !item.important_attendees?.toLowerCase().includes(importantAttendeesFilter.toLowerCase())) return false;
+
+    // 12. Remarks Filter
+    if (remarksFilter && !item.remarks?.toLowerCase().includes(remarksFilter.toLowerCase())) return false;
+
+    // 13. Entered Time Filter
+    if (enteredTimeFilter && !item.entered_time?.toLowerCase().includes(enteredTimeFilter.toLowerCase())) return false;
+
+    return true;
+  });
+
+  const activeFiltersCount = useMemo(() => {
+    let count = 0;
+    if (districtFilter) count++;
+    if (blockFilter) count++;
+    if (engagementTypeFilter) count++;
+    if (enteredByFilter) count++;
+    if (schoolTypeFilter) count++;
+    if (schoolCategoryFilter) count++;
+    if (minAlumniFilter) count++;
+    if (minAmountFilter) count++;
+    if (proofFilter) count++;
+    if (importantAttendeesFilter) count++;
+    if (remarksFilter) count++;
+    if (enteredTimeFilter) count++;
+    return count;
+  }, [
+    districtFilter, blockFilter, engagementTypeFilter, enteredByFilter,
+    schoolTypeFilter, schoolCategoryFilter, minAlumniFilter, minAmountFilter,
+    proofFilter, importantAttendeesFilter, remarksFilter, enteredTimeFilter
+  ]);
+
+  const resetAllFilters = () => {
+    setSearch("");
+    setDistrictFilter("");
+    setBlockFilter("");
+    setEngagementTypeFilter("");
+    setEnteredByFilter("");
+    setSchoolTypeFilter("");
+    setSchoolCategoryFilter("");
+    setMinAlumniFilter("");
+    setMinAmountFilter("");
+    setProofFilter("");
+    setImportantAttendeesFilter("");
+    setRemarksFilter("");
+    setEnteredTimeFilter("");
+  };
+
+  const totalAlumniEngaged = filteredData.reduce((sum, item) => sum + (item.alumni_count || 0), 0);
+  const totalAmountCollected = filteredData.reduce((sum, item) => sum + (item.amount_collected || 0), 0);
+
+  const renderFileIcon = (fileType: string) => {
+    if (fileType.startsWith("image/")) return <ImageIcon size={14} className="text-blue-500" />;
+    if (fileType.startsWith("video/")) return <Video size={14} className="text-purple-500" />;
+    if (fileType === "application/pdf" || fileType.includes("pdf")) return <FileText size={14} className="text-red-500" />;
+    return <FileText size={14} className="text-slate-500" />;
+  };
+
+  const openFileInNewWindow = (file: ProofFile) => {
+    const newWindow = window.open();
+    if (newWindow) {
+      newWindow.document.write(
+        `<iframe src="${file.content}" frameborder="0" style="border:0; top:0px; left:0px; bottom:0px; right:0px; width:100%; height:100%;" allowfullscreen></iframe>`
+      );
+    }
+  };
 
   return (
     <div
@@ -218,7 +435,7 @@ export default function CoreEngagement() {
         </div>
         <button
           onClick={openAdd}
-          className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition-all shadow-sm shadow-emerald-200 animate-fade-in"
+          className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition-all shadow-sm shadow-emerald-200"
         >
           <Plus size={16} />
           Add Engagement
@@ -229,25 +446,32 @@ export default function CoreEngagement() {
         {/* Page Title */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Alumni Core Engagement</h1>
-          <p className="text-slate-500 mt-1 text-sm">Manage and track core engagement activities, programs, and alumni verification drives.</p>
+          <p className="text-slate-500 mt-1 text-sm">Manage and track school-level alumni core engagement activities, contributions, and upload verification files.</p>
         </div>
 
         {/* Stats Row */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8">
           {[
             {
-              label: "Total Engagements Tracked",
-              value: data.length,
+              label: "Total Engagements",
+              value: filteredData.length,
               icon: <Users size={20} className="text-blue-600" />,
               bg: "bg-blue-50",
               accent: "text-blue-600",
             },
             {
-              label: "Core Teams Formed",
-              value: `${activeCount} / ${data.length}`,
+              label: "Total Alumni Engaged",
+              value: totalAlumniEngaged.toLocaleString(),
               icon: <CheckCircle size={20} className="text-emerald-600" />,
               bg: "bg-emerald-50",
               accent: "text-emerald-600",
+            },
+            {
+              label: "Total Amount Collected",
+              value: `₹ ${totalAmountCollected.toLocaleString()}`,
+              icon: <DollarSign size={20} className="text-amber-600" />,
+              bg: "bg-amber-50",
+              accent: "text-amber-600",
             },
           ].map((stat) => (
             <div key={stat.label} className="bg-white rounded-2xl px-6 py-5 border border-slate-200 flex items-center gap-4 shadow-sm">
@@ -262,124 +486,254 @@ export default function CoreEngagement() {
           ))}
         </div>
 
-      {/* Search and Filter Section */}
-      <div className="flex flex-col md:flex-row items-stretch md:items-center gap-4 mb-5">
-        {/* Search Bar */}
-        <div className="flex-1 bg-white rounded-2xl border border-slate-200 px-5 py-4 flex items-center gap-3 shadow-sm">
-          <Search size={18} className="text-slate-400 flex-shrink-0" />
-          <input
-            type="text"
-            placeholder="Search by core team or activity details..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="flex-1 bg-transparent text-sm text-slate-700 placeholder:text-slate-400 outline-none"
-          />
-          {search && (
-            <button onClick={() => setSearch("")} className="text-slate-400 hover:text-slate-600 cursor-pointer">
+        {/* Search and Filter Section */}
+        <div className="flex flex-col md:flex-row items-stretch md:items-center gap-4 mb-5">
+          {/* Search Bar */}
+          <div className="flex-1 bg-white rounded-2xl border border-slate-200 px-5 py-4 flex items-center gap-3 shadow-sm">
+            <Search size={18} className="text-slate-400 flex-shrink-0" />
+            <input
+              type="text"
+              placeholder="Search by school, remarks or important attendees..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="flex-1 bg-transparent text-sm text-slate-700 placeholder:text-slate-400 outline-none"
+            />
+            {search && (
+              <button onClick={() => setSearch("")} className="text-slate-400 hover:text-slate-600 cursor-pointer">
+                <X size={16} />
+              </button>
+            )}
+          </div>
+
+          {/* District Filter */}
+          <div className="bg-white rounded-2xl border border-slate-200 px-5 py-4 flex items-center gap-3 shadow-sm min-w-[170px] relative">
+            <select
+              value={districtFilter}
+              onChange={(e) => {
+                setDistrictFilter(e.target.value);
+                setBlockFilter("");
+              }}
+              className="flex-1 bg-transparent text-sm text-slate-700 outline-none cursor-pointer appearance-none pr-8 font-medium"
+            >
+              <option value="">All Districts</option>
+              {DISTRICTS.map((d) => (
+                <option key={d} value={d}>{d}</option>
+              ))}
+            </select>
+            <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none flex items-center gap-1">
+              {districtFilter && (
+                <button type="button" onClick={(e) => { e.stopPropagation(); setDistrictFilter(""); setBlockFilter(""); }} className="text-slate-400 hover:text-slate-600 pointer-events-auto"><X size={14} /></button>
+              )}
+              <ChevronDown size={15} className="text-slate-400" />
+            </div>
+          </div>
+
+          {/* Block Filter */}
+          <div className="bg-white rounded-2xl border border-slate-200 px-5 py-4 flex items-center gap-3 shadow-sm min-w-[170px] relative">
+            <select
+              value={blockFilter}
+              onChange={(e) => setBlockFilter(e.target.value)}
+              disabled={!districtFilter}
+              className="flex-1 bg-transparent text-sm text-slate-700 outline-none cursor-pointer disabled:opacity-50 appearance-none pr-8 font-medium"
+            >
+              <option value="">{districtFilter ? "All Blocks" : "Select District First"}</option>
+              {districtFilter &&
+                DISTRICT_BLOCKS[districtFilter]?.map((b) => (
+                  <option key={b} value={b}>{b}</option>
+                ))}
+            </select>
+            <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none flex items-center gap-1">
+              {blockFilter && (
+                <button type="button" onClick={(e) => { e.stopPropagation(); setBlockFilter(""); }} className="text-slate-400 hover:text-slate-600 pointer-events-auto"><X size={14} /></button>
+              )}
+              <ChevronDown size={15} className="text-slate-400" />
+            </div>
+          </div>
+
+          {/* Toggle Advanced Filters Button */}
+          <button
+            onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+            className={`flex items-center justify-center gap-2 h-14 px-6 rounded-2xl border text-sm font-semibold transition-all cursor-pointer ${
+              showAdvancedFilters || activeFiltersCount > 0
+                ? "bg-emerald-50 border-emerald-200 text-emerald-600 shadow-sm"
+                : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
+            }`}
+          >
+            <span>Advanced Filters</span>
+            {activeFiltersCount > 0 && (
+              <span className="w-5 h-5 rounded-full bg-emerald-600 text-white text-[10px] flex items-center justify-center font-bold">
+                {activeFiltersCount}
+              </span>
+            )}
+          </button>
+
+          {/* Reset Button */}
+          {(search || activeFiltersCount > 0) && (
+            <button
+              onClick={resetAllFilters}
+              className="flex items-center justify-center gap-1.5 h-14 px-6 rounded-2xl border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-600 text-sm font-semibold transition-all cursor-pointer"
+            >
               <X size={16} />
+              Reset All
             </button>
           )}
         </div>
 
-        {/* District Filter */}
-        <div className="bg-white rounded-2xl border border-slate-200 px-5 py-4 flex items-center gap-3 shadow-sm min-w-[200px] relative">
-          <select
-            value={districtFilter}
-            onChange={(e) => {
-              setDistrictFilter(e.target.value);
-              setBlockFilter(""); // Reset block filter when district changes
-            }}
-            className="flex-1 bg-transparent text-sm text-slate-700 placeholder:text-slate-400 outline-none cursor-pointer appearance-none pr-8"
-          >
-            <option value="">All Districts</option>
-            {DISTRICTS.map((d) => (
-              <option key={d} value={d}>
-                {d}
-              </option>
-            ))}
-          </select>
-          <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-1.5 pointer-events-none">
-            {districtFilter && (
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setDistrictFilter("");
-                  setBlockFilter("");
-                }}
-                className="text-slate-400 hover:text-slate-600 pointer-events-auto cursor-pointer"
-              >
-                <X size={16} />
-              </button>
-            )}
-            <ChevronDown size={15} className="text-slate-400" />
-          </div>
-        </div>
+        {/* Collapsible Advanced Filters Panel */}
+        {showAdvancedFilters && (
+          <div className="bg-white border border-slate-200 rounded-3xl p-6 mb-6 shadow-sm grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-5 animate-slide-down">
+            {/* School Type */}
+            <div className="flex flex-col">
+              <label className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-1.5">School Type</label>
+              <div className="relative">
+                <select
+                  value={schoolTypeFilter}
+                  onChange={(e) => setSchoolTypeFilter(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-700 outline-none appearance-none pr-9 cursor-pointer"
+                >
+                  <option value="">All Types</option>
+                  {["Primary School", "Middle School", "High School", "High Sec School"].map((t) => (
+                    <option key={t} value={t}>{t}</option>
+                  ))}
+                </select>
+                <ChevronDown size={15} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+              </div>
+            </div>
 
-        {/* Block Filter */}
-        <div className="bg-white rounded-2xl border border-slate-200 px-5 py-4 flex items-center gap-3 shadow-sm min-w-[200px] relative">
-          <select
-            value={blockFilter}
-            onChange={(e) => setBlockFilter(e.target.value)}
-            disabled={!districtFilter}
-            className="flex-1 bg-transparent text-sm text-slate-700 placeholder:text-slate-400 outline-none cursor-pointer disabled:opacity-50 appearance-none pr-8"
-          >
-            <option value="">
-              {districtFilter ? "All Blocks" : "Select District First"}
-            </option>
-            {districtFilter &&
-              DISTRICT_BLOCKS[districtFilter]?.map((b) => (
-                <option key={b} value={b}>
-                  {b}
-                </option>
-              ))}
-          </select>
-          <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-1.5 pointer-events-none">
-            {blockFilter && (
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setBlockFilter("");
-                }}
-                className="text-slate-400 hover:text-slate-600 pointer-events-auto cursor-pointer"
-              >
-                <X size={16} />
-              </button>
-            )}
-            <ChevronDown size={15} className="text-slate-400" />
-          </div>
-        </div>
+            {/* School Category */}
+            <div className="flex flex-col">
+              <label className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-1.5">Category</label>
+              <div className="relative">
+                <select
+                  value={schoolCategoryFilter}
+                  onChange={(e) => setSchoolCategoryFilter(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-700 outline-none appearance-none pr-9 cursor-pointer"
+                >
+                  <option value="">All Categories</option>
+                  {["Career Guidance", "Centinary School", "Vetri Palligal School"].map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+                <ChevronDown size={15} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+              </div>
+            </div>
 
-        {/* Entered By Filter */}
-        <div className="bg-white rounded-2xl border border-slate-200 px-5 py-4 flex items-center gap-3 shadow-sm min-w-[200px] relative">
-          <select
-            value={enteredByFilter}
-            onChange={(e) => setEnteredByFilter(e.target.value)}
-            className="flex-1 bg-transparent text-sm text-slate-700 placeholder:text-slate-400 outline-none cursor-pointer appearance-none pr-8"
-          >
-            <option value="">All entered by</option>
-            {enteredByOptions.map(({ name, count }) => (
-              <option key={name} value={name}>{`${name} (${count})`}</option>
-            ))}
-          </select>
-          <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-1.5 pointer-events-none">
-            {enteredByFilter && (
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setEnteredByFilter("");
-                }}
-                className="text-slate-400 hover:text-slate-600 pointer-events-auto cursor-pointer"
-              >
-                <X size={16} />
-              </button>
-            )}
-            <ChevronDown size={15} className="text-slate-400" />
+            {/* Type of Engagement */}
+            <div className="flex flex-col">
+              <label className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-1.5">Engagement Type</label>
+              <div className="relative">
+                <select
+                  value={engagementTypeFilter}
+                  onChange={(e) => setEngagementTypeFilter(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-700 outline-none appearance-none pr-9 cursor-pointer"
+                >
+                  <option value="">All Engagements</option>
+                  {ENGAGEMENT_TYPES.map((t) => (
+                    <option key={t} value={t}>{t}</option>
+                  ))}
+                </select>
+                <ChevronDown size={15} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+              </div>
+            </div>
+
+            {/* Entered By */}
+            <div className="flex flex-col">
+              <label className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-1.5">Entered By</label>
+              <div className="relative">
+                <select
+                  value={enteredByFilter}
+                  onChange={(e) => setEnteredByFilter(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-700 outline-none appearance-none pr-9 cursor-pointer"
+                >
+                  <option value="">All Entered By</option>
+                  {enteredByOptions.map(({ name, count }) => (
+                    <option key={name} value={name}>{`${name} (${count})`}</option>
+                  ))}
+                </select>
+                <ChevronDown size={15} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+              </div>
+            </div>
+
+            {/* Min Alumni Engaged */}
+            <div className="flex flex-col">
+              <label className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-1.5">Min Alumni Engaged</label>
+              <input
+                type="number"
+                min="0"
+                placeholder="e.g. 5"
+                value={minAlumniFilter}
+                onChange={(e) => setMinAlumniFilter(e.target.value)}
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-700 outline-none placeholder:text-slate-300"
+              />
+            </div>
+
+            {/* Min Amount Collected */}
+            <div className="flex flex-col">
+              <label className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-1.5">Min Amount Collected</label>
+              <input
+                type="number"
+                min="0"
+                placeholder="e.g. 1000"
+                value={minAmountFilter}
+                onChange={(e) => setMinAmountFilter(e.target.value)}
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-700 outline-none placeholder:text-slate-300"
+              />
+            </div>
+
+            {/* Has Proof Uploaded */}
+            <div className="flex flex-col">
+              <label className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-1.5">Proof Uploaded</label>
+              <div className="relative">
+                <select
+                  value={proofFilter}
+                  onChange={(e) => setProofFilter(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-700 outline-none appearance-none pr-9 cursor-pointer"
+                >
+                  <option value="">All</option>
+                  <option value="Yes">Yes</option>
+                  <option value="No">No</option>
+                </select>
+                <ChevronDown size={15} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+              </div>
+            </div>
+
+            {/* Important Attendees Search */}
+            <div className="flex flex-col">
+              <label className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-1.5">Important Attendees</label>
+              <input
+                type="text"
+                placeholder="Search attendees..."
+                value={importantAttendeesFilter}
+                onChange={(e) => setImportantAttendeesFilter(e.target.value)}
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-700 outline-none placeholder:text-slate-300"
+              />
+            </div>
+
+            {/* Remarks Search */}
+            <div className="flex flex-col">
+              <label className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-1.5">Remarks Search</label>
+              <input
+                type="text"
+                placeholder="Search remarks..."
+                value={remarksFilter}
+                onChange={(e) => setRemarksFilter(e.target.value)}
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-700 outline-none placeholder:text-slate-300"
+              />
+            </div>
+
+            {/* Entered Time Search */}
+            <div className="flex flex-col">
+              <label className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-1.5">Entered Time / Date</label>
+              <input
+                type="text"
+                placeholder="e.g. 2026-06-01"
+                value={enteredTimeFilter}
+                onChange={(e) => setEnteredTimeFilter(e.target.value)}
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-700 outline-none placeholder:text-slate-300"
+              />
+            </div>
           </div>
-        </div>
-      </div>
+        )}
 
         {/* Table */}
         <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
@@ -387,80 +741,116 @@ export default function CoreEngagement() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-slate-900 text-white">
-                  {["Sl No", "Core Team Name", "Team Formation Done", "District", "Block", "Activity", "Proof", "Remarks", "Actions", "Entered By"].map((h) => (
-                  <th key={h} className="px-5 py-4 text-left font-semibold text-xs tracking-wider uppercase whitespace-nowrap">
-                    {h}
-                  </th>
-                ))}
+                  {[
+                    "Sl No", "District", "Block", "School Name", "School Type", 
+                    "School Category", "Type of Engagement", "Alumni Engaged", 
+                    "Amount Collected (₹)", "Proof", "Important Attendies", "Remarks", 
+                    "Entered By", "Action"
+                  ].map((h) => (
+                    <th key={h} className="px-4 py-4 text-left font-semibold text-xs tracking-wider uppercase whitespace-nowrap">
+                      {h}
+                    </th>
+                  ))}
                 </tr>
               </thead>
               <tbody>
-                {filteredData.length === 0 ? (
+                {loading ? (
                   <tr>
-                    <td colSpan={10} className="px-5 py-16 text-center text-slate-400 text-sm">
-                      No records found. Add one to get started.
+                    <td colSpan={14} className="px-5 py-16 text-center text-slate-400 text-sm">
+                      <div className="flex items-center justify-center gap-2">
+                        <div className="w-5 h-5 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin"></div>
+                        Loading records from server...
+                      </div>
+                    </td>
+                  </tr>
+                ) : filteredData.length === 0 ? (
+                  <tr>
+                    <td colSpan={14} className="px-5 py-16 text-center text-slate-400 text-sm">
+                      No core engagement records found.
                     </td>
                   </tr>
                 ) : (
                   filteredData.map((item, index) => (
                     <tr key={item.id} className="border-t border-slate-100 hover:bg-slate-50 transition-colors group">
-                      <td className="px-5 py-4 text-slate-400 font-medium">{String(index + 1).padStart(2, "0")}</td>
-                      <td className="px-5 py-4 font-semibold text-slate-800">{item.core_team_name}</td>
-                      <td className="px-5 py-4">
-                        <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${
-                          item.team_formation_done === "Yes"
-                            ? "bg-emerald-50 text-emerald-700"
-                            : "bg-red-50 text-red-600"
-                        }`}>
-                          {item.team_formation_done === "Yes" ? <CheckCircle size={12} /> : <XCircle size={12} />}
-                          {item.team_formation_done}
+                      <td className="px-4 py-4 text-slate-400 font-medium">{String(index + 1).padStart(2, "0")}</td>
+                      <td className="px-4 py-4 font-medium text-slate-700 whitespace-nowrap">{item.district}</td>
+                      <td className="px-4 py-4 font-medium text-slate-700 whitespace-nowrap">{item.block}</td>
+                      <td className="px-4 py-4 font-semibold text-slate-900 min-w-[180px]">{item.school_name}</td>
+                      <td className="px-4 py-4 text-slate-600 whitespace-nowrap">{item.school_type}</td>
+                      <td className="px-4 py-4 whitespace-nowrap">
+                        <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-700">
+                          {item.school_category}
                         </span>
                       </td>
-                      <td className="px-5 py-4">{item.district || "—"}</td>
-                      <td className="px-5 py-4">{item.block || "—"}</td>
-                      <td className="px-5 py-4 text-slate-700 font-medium max-w-[200px] truncate">{item.activity}</td>
-                      <td className="px-5 py-4 text-slate-500">
-                        {item.proof ? (
-                          <span className="inline-flex items-center gap-1 text-emerald-600 text-xs font-semibold">
-                            <ImageIcon size={14} /> Uploaded
+                      <td className="px-4 py-4 whitespace-nowrap font-medium">
+                        {item.engagement_type === "Others" ? (
+                          <span className="text-slate-700 italic">
+                            Others: {item.other_engagement_type || "N/A"}
                           </span>
+                        ) : (
+                          <span className="text-emerald-700">{item.engagement_type}</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-4 font-semibold text-slate-800 text-center">{item.alumni_count}</td>
+                      <td className="px-4 py-4 font-semibold text-slate-800 text-right">
+                        {item.amount_collected > 0 ? `₹ ${item.amount_collected.toLocaleString()}` : "—"}
+                      </td>
+                      <td className="px-4 py-4">
+                        {item.proof_files && item.proof_files.length > 0 ? (
+                          <div className="flex flex-wrap gap-1.5 max-w-[80px]">
+                            {item.proof_files.map((file, idx) => (
+                              <button
+                                key={idx}
+                                onClick={() => openFileInNewWindow(file)}
+                                className="w-6 h-6 rounded bg-slate-100 border border-slate-200 flex items-center justify-center hover:bg-slate-200 transition-colors"
+                                title={file.name}
+                              >
+                                {renderFileIcon(file.type)}
+                              </button>
+                            ))}
+                          </div>
                         ) : (
                           <span className="text-slate-300 text-xs">No Proof</span>
                         )}
                       </td>
-                      <td className="px-5 py-4 text-slate-500 max-w-[200px] truncate">{item.remarks || <span className="text-slate-300">—</span>}</td>
-                      <td className="px-5 py-4">
-                        <div className="flex items-center gap-2 opacity-60 group-hover:opacity-100 transition-opacity">
+                      <td className="px-4 py-4 text-slate-600 max-w-[150px] truncate" title={item.important_attendees}>
+                        {item.important_attendees || <span className="text-slate-300">—</span>}
+                      </td>
+                      <td className="px-4 py-4 text-slate-600 max-w-[150px] truncate" title={item.remarks}>
+                        {item.remarks || <span className="text-slate-300">—</span>}
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap">
+                        <div className="font-semibold text-slate-800 text-xs">{item.entered_by || 'Unknown'}</div>
+                        <div className="text-[10px] text-slate-400 font-medium">{item.entered_time || '—'}</div>
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap">
+                        <div className="flex items-center gap-1.5 opacity-60 group-hover:opacity-100 transition-opacity">
                           <button
                             onClick={() => setViewItem(item)}
-                            className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition-colors"
+                            className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-600 transition-colors"
                             title="View"
                           >
-                            <Eye size={14} className="text-slate-600" />
+                            <Eye size={14} />
                           </button>
                           {currentUser?.role !== 'employee' && (
                             <>
                               <button
                                 onClick={() => openEdit(item)}
-                                className="w-8 h-8 rounded-lg bg-blue-50 hover:bg-blue-100 flex items-center justify-center transition-colors"
+                                className="w-8 h-8 rounded-lg bg-blue-50 hover:bg-blue-100 flex items-center justify-center text-blue-600 transition-colors"
                                 title="Edit"
                               >
-                                <Pencil size={14} className="text-blue-600" />
+                                <Pencil size={14} />
                               </button>
                               <button
                                 onClick={() => setDeleteConfirm(item.id)}
-                                className="w-8 h-8 rounded-lg bg-red-50 hover:bg-red-100 flex items-center justify-center transition-colors"
+                                className="w-8 h-8 rounded-lg bg-red-50 hover:bg-red-100 flex items-center justify-center text-red-500 transition-colors"
                                 title="Delete"
                               >
-                                <Trash2 size={14} className="text-red-500" />
+                                <Trash2 size={14} />
                               </button>
                             </>
                           )}
                         </div>
-                      </td>
-                      <td className="px-5 py-4">
-                        <div className="font-semibold text-slate-800 text-xs">{item.entered_by || 'Unknown'}</div>
-                        <div className="text-[10px] text-slate-400 font-medium">{item.entered_time || '—'}</div>
                       </td>
                     </tr>
                   ))
@@ -482,7 +872,7 @@ export default function CoreEngagement() {
             <div className="bg-slate-900 px-7 py-5 flex items-center justify-between">
               <div>
                 <h2 className="text-white font-bold text-lg">{editId ? "Edit" : "Add"} Core Engagement</h2>
-                <p className="text-slate-400 text-xs mt-0.5">Define core team engagement metrics</p>
+                <p className="text-slate-400 text-xs mt-0.5">Define school alumni core engagement metrics</p>
               </div>
               <button
                 onClick={() => setShowModal(false)}
@@ -495,15 +885,6 @@ export default function CoreEngagement() {
             {/* Modal Body */}
             <div className="px-7 py-6 overflow-y-auto max-h-[70vh]">
               <div className="grid grid-cols-2 gap-x-5 gap-y-5">
-                <Field label="Core Team Name *" error={errors.core_team_name}>
-                  <input
-                    type="text"
-                    placeholder="e.g. Madurai Alumni Core Team"
-                    value={formData.core_team_name}
-                    onChange={(e) => setFormData({ ...formData, core_team_name: e.target.value })}
-                    className={inputCls(!!errors.core_team_name)}
-                  />
-                </Field>
                 <Field label="District *" error={errors.district}>
                   <select
                     value={formData.district}
@@ -516,63 +897,156 @@ export default function CoreEngagement() {
                     ))}
                   </select>
                 </Field>
+
                 <Field label="Block *" error={errors.block}>
                   <select
                     value={formData.block}
                     onChange={(e) => setFormData({ ...formData, block: e.target.value })}
+                    disabled={!formData.district}
                     className={inputCls(!!errors.block)}
                   >
-                    <option value="">Select Block</option>
+                    <option value="">{formData.district ? "Select Block" : "Select District First"}</option>
                     {(DISTRICT_BLOCKS[formData.district] || []).map((b) => (
                       <option key={b} value={b}>{b}</option>
                     ))}
                   </select>
                 </Field>
 
-                <Field label="Team Formation Done">
-                  <select
-                    value={formData.team_formation_done}
-                    onChange={(e) => setFormData({ ...formData, team_formation_done: e.target.value })}
-                    className={inputCls(false)}
-                  >
-                    <option value="Yes">Yes</option>
-                    <option value="No">No</option>
-                  </select>
-                </Field>
-
                 <div className="col-span-2">
-                  <Field label="Activity *" error={errors.activity}>
+                  <Field label="School Name *" error={errors.school_name}>
                     <input
                       type="text"
-                      placeholder="e.g. Monthly Committee Meeting & Goal Setting"
-                      value={formData.activity}
-                      onChange={(e) => setFormData({ ...formData, activity: e.target.value })}
-                      className={inputCls(!!errors.activity)}
+                      placeholder="e.g. Govt Hr Sec School, Madurai"
+                      value={formData.school_name}
+                      onChange={(e) => setFormData({ ...formData, school_name: e.target.value })}
+                      className={inputCls(!!errors.school_name)}
                     />
                   </Field>
                 </div>
 
-                <Field label="Activity Proof Image">
-                  <label className="flex items-center gap-3 border border-dashed border-slate-300 rounded-xl p-3 cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-colors">
-                    <Upload size={16} className="text-slate-400" />
-                    <span className="text-sm text-slate-500 truncate">
-                      {formData.proof ? (formData.proof as File).name : "Choose file..."}
-                    </span>
+                <Field label="School Type *" error={errors.school_type}>
+                  <select
+                    value={formData.school_type}
+                    onChange={(e) => setFormData({ ...formData, school_type: e.target.value })}
+                    className={inputCls(!!errors.school_type)}
+                  >
+                    {["Primary School", "Middle School", "High School", "High Sec School"].map((t) => (
+                      <option key={t} value={t}>{t}</option>
+                    ))}
+                  </select>
+                </Field>
+
+                <Field label="School Category *" error={errors.school_category}>
+                  <select
+                    value={formData.school_category}
+                    onChange={(e) => setFormData({ ...formData, school_category: e.target.value })}
+                    className={inputCls(!!errors.school_category)}
+                  >
+                    {["Career Guidance", "Centinary School", "Vetri Palligal School"].map((c) => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
+                  </select>
+                </Field>
+
+                <Field label="Type of Engagement *" error={errors.engagement_type}>
+                  <select
+                    value={formData.engagement_type}
+                    onChange={(e) => setFormData({ ...formData, engagement_type: e.target.value })}
+                    className={inputCls(!!errors.engagement_type)}
+                  >
+                    {ENGAGEMENT_TYPES.map((t) => (
+                      <option key={t} value={t}>{t}</option>
+                    ))}
+                  </select>
+                </Field>
+
+                {formData.engagement_type === "Others" ? (
+                  <Field label="Specify Engagement Type *" error={errors.other_engagement_type}>
+                    <input
+                      type="text"
+                      placeholder="e.g. Science Exhibition Sponsor"
+                      value={formData.other_engagement_type}
+                      onChange={(e) => setFormData({ ...formData, other_engagement_type: e.target.value })}
+                      className={inputCls(!!errors.other_engagement_type)}
+                    />
+                  </Field>
+                ) : (
+                  <div />
+                )}
+
+                <Field label="Number of Alumni Engaged *" error={errors.alumni_count}>
+                  <input
+                    type="number"
+                    min="0"
+                    placeholder="e.g. 15"
+                    value={formData.alumni_count}
+                    onChange={(e) => setFormData({ ...formData, alumni_count: e.target.value })}
+                    className={inputCls(!!errors.alumni_count)}
+                  />
+                </Field>
+
+                <Field label="Total Amount Collected (₹) *" error={errors.amount_collected}>
+                  <input
+                    type="number"
+                    min="0"
+                    placeholder="e.g. 5000"
+                    value={formData.amount_collected}
+                    onChange={(e) => setFormData({ ...formData, amount_collected: e.target.value })}
+                    className={inputCls(!!errors.amount_collected)}
+                  />
+                </Field>
+
+                <div className="col-span-2">
+                  <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">
+                    Upload Proof (Multiple Photos, Videos, or PDFs)
+                  </label>
+                  <label className="flex flex-col items-center justify-center border-2 border-dashed border-slate-300 rounded-2xl p-5 cursor-pointer hover:border-emerald-500 hover:bg-emerald-50/30 transition-colors">
+                    <Upload size={24} className="text-slate-400 mb-2" />
+                    <span className="text-sm font-medium text-slate-600">Click to upload files</span>
+                    <span className="text-xs text-slate-400 mt-1">Images, Videos or PDFs</span>
                     <input
                       type="file"
-                      accept="image/*"
+                      accept="image/*,video/*,application/pdf"
+                      multiple
                       className="hidden"
-                      onChange={(e) => setFormData({ ...formData, proof: e.target.files?.[0] || null })}
+                      onChange={handleMultipleFilesUpload}
                     />
                   </label>
-                  {formData.proof && (
-                    <img
-                      src={URL.createObjectURL(formData.proof as File)}
-                      alt="Preview"
-                      className="mt-2 h-20 w-20 object-cover rounded-lg border border-slate-200"
-                    />
+
+                  {formData.proof_files.length > 0 && (
+                    <div className="mt-4 grid grid-cols-2 gap-3">
+                      {formData.proof_files.map((file, idx) => (
+                        <div key={idx} className="flex items-center justify-between border border-slate-200 rounded-xl p-2.5 bg-slate-50">
+                          <div className="flex items-center gap-2 min-w-0">
+                            {renderFileIcon(file.type)}
+                            <span className="text-xs text-slate-600 truncate font-medium max-w-[180px]">
+                              {file.name}
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => removeProofFile(idx)}
+                            className="text-slate-400 hover:text-red-500 transition-colors"
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
                   )}
-                </Field>
+                </div>
+
+                <div className="col-span-2">
+                  <Field label="Important Attendies">
+                    <textarea
+                      placeholder="e.g. Chief Guest Name, HM, SMC members..."
+                      value={formData.important_attendees}
+                      onChange={(e) => setFormData({ ...formData, important_attendees: e.target.value })}
+                      rows={2}
+                      className={inputCls(false) + " resize-none"}
+                    />
+                  </Field>
+                </div>
 
                 <div className="col-span-2">
                   <Field label="Remarks">
@@ -610,40 +1084,69 @@ export default function CoreEngagement() {
       {/* View Modal */}
       {viewItem && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden animate-zoom-in">
+          <div className="bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden animate-zoom-in">
             <div className="bg-slate-900 px-6 py-5 flex items-center justify-between">
-              <h2 className="text-white font-bold">Engagement Details</h2>
+              <h2 className="text-white font-bold text-lg">Engagement Details</h2>
               <button onClick={() => setViewItem(null)} className="w-8 h-8 rounded-xl bg-slate-700 hover:bg-slate-600 flex items-center justify-center">
                 <X size={15} className="text-white" />
               </button>
             </div>
-            <div className="p-6 space-y-4">
+            <div className="p-6 space-y-4 overflow-y-auto max-h-[60vh]">
               {[
-                ["Core Team Name", viewItem.core_team_name],
-                ["Team Formation Done", viewItem.team_formation_done],
-                ["Activity", viewItem.activity],
+                ["School Name", viewItem.school_name],
+                ["District", viewItem.district],
+                ["Block", viewItem.block],
+                ["School Type", viewItem.school_type],
+                ["School Category", viewItem.school_category],
+                [
+                  "Type of Engagement", 
+                  viewItem.engagement_type === "Others" 
+                    ? `Others: ${viewItem.other_engagement_type || "N/A"}` 
+                    : viewItem.engagement_type
+                ],
+                ["Alumni Count", viewItem.alumni_count],
+                ["Amount Collected", `₹ ${viewItem.amount_collected.toLocaleString()}`],
+                ["Important Attendies", viewItem.important_attendees || "—"],
                 ["Remarks", viewItem.remarks || "—"],
+                ["Entered By", viewItem.entered_by || "Unknown"],
+                ["Entered Time", viewItem.entered_time || "—"],
               ].map(([label, value]) => (
-                <div key={label} className="flex justify-between items-start gap-4">
-                  <span className="text-xs font-semibold text-slate-400 uppercase tracking-wide w-36 flex-shrink-0">{label}</span>
-                  <span className="text-sm text-slate-700 font-medium text-right">{value}</span>
+                <div key={label} className="flex justify-between items-start gap-4 border-b border-slate-50 pb-2">
+                  <span className="text-xs font-semibold text-slate-400 uppercase tracking-wide w-40 flex-shrink-0">{label}</span>
+                  <span className="text-sm text-slate-700 font-medium text-right break-words">{value}</span>
                 </div>
               ))}
-              {viewItem.proof && (
+
+              {viewItem.proof_files && viewItem.proof_files.length > 0 && (
                 <div className="flex flex-col gap-2 mt-4 pt-4 border-t border-slate-100">
-                  <span className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Uploaded Proof Preview</span>
-                  {typeof viewItem.proof === "string" ? (
-                    <img src={viewItem.proof} alt="Proof" className="w-full h-40 object-cover rounded-xl border" />
-                  ) : (
-                    <img src={URL.createObjectURL(viewItem.proof as File)} alt="Proof" className="w-full h-40 object-cover rounded-xl border" />
-                  )}
+                  <span className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Uploaded Proofs ({viewItem.proof_files.length})</span>
+                  <div className="grid grid-cols-2 gap-3 mt-1">
+                    {viewItem.proof_files.map((file, idx) => (
+                      <div key={idx} className="flex flex-col border border-slate-200 rounded-xl overflow-hidden bg-slate-50">
+                        {file.type.startsWith("image/") ? (
+                          <img src={file.content} alt={file.name} className="w-full h-24 object-cover border-b" />
+                        ) : (
+                          <div className="w-full h-24 flex items-center justify-center bg-slate-100 border-b">
+                            {renderFileIcon(file.type)}
+                          </div>
+                        )}
+                        <button
+                          onClick={() => openFileInNewWindow(file)}
+                          className="px-3 py-1.5 text-xs text-blue-600 hover:text-blue-700 text-center font-medium bg-white hover:bg-slate-50 transition-colors w-full truncate border-t"
+                          title={file.name}
+                        >
+                          View / Download
+                        </button>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
             <div className="px-6 pb-6">
               <button
                 onClick={() => setViewItem(null)}
-                className="w-full py-2.5 rounded-xl text-sm font-semibold text-white bg-slate-900 hover:bg-slate-800 transition-colors"
+                className="w-full py-3 rounded-xl text-sm font-semibold text-white bg-slate-900 hover:bg-slate-800 transition-colors"
               >
                 Close
               </button>
@@ -655,7 +1158,7 @@ export default function CoreEngagement() {
       {/* Delete Confirm */}
       {deleteConfirm !== null && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white w-full max-w-sm rounded-3xl shadow-2xl p-7 text-center">
+          <div className="bg-white w-full max-w-sm rounded-3xl shadow-2xl p-7 text-center animate-zoom-in">
             <div className="w-14 h-14 rounded-2xl bg-red-50 flex items-center justify-center mx-auto mb-4">
               <Trash2 size={24} className="text-red-500" />
             </div>

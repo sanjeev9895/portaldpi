@@ -68,13 +68,18 @@ class AttendanceResponse(AttendanceCreate):
 # =====================================
 
 class CoreEngagementCreate(BaseModel):
-    core_team_name: str
-    team_formation_done: str = "No"
-    activity: str
-    proof: Optional[str] = None
+    district: str
+    block: str
+    school_name: str
+    school_type: Optional[str] = None
+    school_category: Optional[str] = None
+    engagement_type: Optional[str] = None
+    other_engagement_type: Optional[str] = None
+    alumni_count: int = 0
+    amount_collected: int = 0
+    proof_files: Optional[str] = None
+    important_attendees: Optional[str] = None
     remarks: Optional[str] = None
-    district: Optional[str] = None
-    block: Optional[str] = None
     entered_by: Optional[str] = None
     entered_time: Optional[str] = None
 
@@ -167,12 +172,17 @@ class WhatsAppEngagementCreate(BaseModel):
     school_name: str
     district: Optional[str] = None
     block: Optional[str] = None
+    school_type: Optional[str] = None
+    school_category: Optional[str] = None
+    group_formed: str = "Yes"
     group_link: Optional[str] = None
-    group_admin: Optional[str] = None
     member_count: int = 0
+    last_shared_message: Optional[str] = None
+    last_shared_message_date: Optional[str] = None
+    last_msg_responses: Optional[str] = None
     activity_status: Optional[str] = None
-    last_msg_date: Optional[str] = None
-    remarks: Optional[str] = None
+    changes_count: int = 0
+    history_json: Optional[str] = None
     entered_by: Optional[str] = None
     entered_time: Optional[str] = None
 

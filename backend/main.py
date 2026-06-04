@@ -311,4 +311,156 @@ def delete_core_team_formation(id: int, db: Session = Depends(get_db)):
     return {"message": "Core Team Formation record deleted"}
 
 
+# =========================================================
+# ALUMNI CORE ENGAGEMENT API
+# =========================================================
+
+@app.post("/core-engagements", response_model=schemas.CoreEngagementResponse, tags=["Alumni Core Engagement"])
+def create_core_engagement(
+    data: schemas.CoreEngagementCreate,
+    db: Session = Depends(get_db)
+):
+    """Create a new Alumni Core Engagement record."""
+    record = models.CoreEngagement(**data.model_dump())
+    db.add(record)
+    db.commit()
+    db.refresh(record)
+    return record
+
+
+@app.get("/core-engagements", response_model=list[schemas.CoreEngagementResponse], tags=["Alumni Core Engagement"])
+def get_all_core_engagements(
+    district: Optional[str] = Query(None, description="Filter by district"),
+    block: Optional[str] = Query(None, description="Filter by block"),
+    school_name: Optional[str] = Query(None, description="Search by school name"),
+    db: Session = Depends(get_db)
+):
+    """Get all Alumni Core Engagement records with optional filters."""
+    query = db.query(models.CoreEngagement)
+    if district:
+        query = query.filter(models.CoreEngagement.district == district)
+    if block:
+        query = query.filter(models.CoreEngagement.block == block)
+    if school_name:
+        query = query.filter(models.CoreEngagement.school_name.ilike(f"%{school_name}%"))
+    return query.all()
+
+
+@app.get("/core-engagements/{id}", response_model=schemas.CoreEngagementResponse, tags=["Alumni Core Engagement"])
+def get_core_engagement(id: int, db: Session = Depends(get_db)):
+    """Get a single Alumni Core Engagement record by ID."""
+    record = db.query(models.CoreEngagement).filter(models.CoreEngagement.id == id).first()
+    if not record:
+        raise HTTPException(status_code=404, detail="Core Engagement record not found")
+    return record
+
+
+@app.put("/core-engagements/{id}", response_model=schemas.CoreEngagementResponse, tags=["Alumni Core Engagement"])
+def update_core_engagement(
+    id: int,
+    data: schemas.CoreEngagementCreate,
+    db: Session = Depends(get_db)
+):
+    """Update an existing Alumni Core Engagement record."""
+    record = db.query(models.CoreEngagement).filter(models.CoreEngagement.id == id).first()
+    if not record:
+        raise HTTPException(status_code=404, detail="Core Engagement record not found")
+
+    for key, value in data.model_dump().items():
+        setattr(record, key, value)
+
+    db.commit()
+    db.refresh(record)
+    return record
+
+
+@app.delete("/core-engagements/{id}", tags=["Alumni Core Engagement"])
+def delete_core_engagement(id: int, db: Session = Depends(get_db)):
+    """Delete an Alumni Core Engagement record."""
+    record = db.query(models.CoreEngagement).filter(models.CoreEngagement.id == id).first()
+    if not record:
+        raise HTTPException(status_code=404, detail="Core Engagement record not found")
+
+    db.delete(record)
+    db.commit()
+    return {"message": "Core Engagement record deleted"}
+
+
+# =========================================================
+# WHATSAPP ENGAGEMENT API
+# =========================================================
+
+@app.post("/whatsapp-engagements", response_model=schemas.WhatsAppEngagementResponse, tags=["WhatsApp Engagement"])
+def create_whatsapp_engagement(
+    data: schemas.WhatsAppEngagementCreate,
+    db: Session = Depends(get_db)
+):
+    """Create a new WhatsApp Group Engagement record."""
+    record = models.WhatsAppEngagement(**data.model_dump())
+    db.add(record)
+    db.commit()
+    db.refresh(record)
+    return record
+
+
+@app.get("/whatsapp-engagements", response_model=list[schemas.WhatsAppEngagementResponse], tags=["WhatsApp Engagement"])
+def get_all_whatsapp_engagements(
+    district: Optional[str] = Query(None, description="Filter by district"),
+    block: Optional[str] = Query(None, description="Filter by block"),
+    school_name: Optional[str] = Query(None, description="Search by school name"),
+    db: Session = Depends(get_db)
+):
+    """Get all WhatsApp Group Engagement records with optional filters."""
+    query = db.query(models.WhatsAppEngagement)
+    if district:
+        query = query.filter(models.WhatsAppEngagement.district == district)
+    if block:
+        query = query.filter(models.WhatsAppEngagement.block == block)
+    if school_name:
+        query = query.filter(models.WhatsAppEngagement.school_name.ilike(f"%{school_name}%"))
+    return query.all()
+
+
+@app.get("/whatsapp-engagements/{id}", response_model=schemas.WhatsAppEngagementResponse, tags=["WhatsApp Engagement"])
+def get_whatsapp_engagement(id: int, db: Session = Depends(get_db)):
+    """Get a single WhatsApp Group Engagement record by ID."""
+    record = db.query(models.WhatsAppEngagement).filter(models.WhatsAppEngagement.id == id).first()
+    if not record:
+        raise HTTPException(status_code=404, detail="WhatsApp Engagement record not found")
+    return record
+
+
+@app.put("/whatsapp-engagements/{id}", response_model=schemas.WhatsAppEngagementResponse, tags=["WhatsApp Engagement"])
+def update_whatsapp_engagement(
+    id: int,
+    data: schemas.WhatsAppEngagementCreate,
+    db: Session = Depends(get_db)
+):
+    """Update an existing WhatsApp Group Engagement record."""
+    record = db.query(models.WhatsAppEngagement).filter(models.WhatsAppEngagement.id == id).first()
+    if not record:
+        raise HTTPException(status_code=404, detail="WhatsApp Engagement record not found")
+
+    for key, value in data.model_dump().items():
+        setattr(record, key, value)
+
+    db.commit()
+    db.refresh(record)
+    return record
+
+
+@app.delete("/whatsapp-engagements/{id}", tags=["WhatsApp Engagement"])
+def delete_whatsapp_engagement(id: int, db: Session = Depends(get_db)):
+    """Delete a WhatsApp Group Engagement record."""
+    record = db.query(models.WhatsAppEngagement).filter(models.WhatsAppEngagement.id == id).first()
+    if not record:
+        raise HTTPException(status_code=404, detail="WhatsApp Engagement record not found")
+
+    db.delete(record)
+    db.commit()
+    return {"message": "WhatsApp Engagement record deleted"}
+
+
+
+
 
