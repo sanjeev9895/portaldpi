@@ -1,11 +1,34 @@
 import { useState, useEffect, useMemo } from "react";
 import { 
   Search, Plus, Eye, Pencil, Trash2, X, Users, CheckCircle, 
-  XCircle, Upload, Image as ImageIcon, ChevronDown, DollarSign, FileText, Video 
+  Upload, Image as ImageIcon, ChevronDown, DollarSign, FileText, Video 
 } from "lucide-react";
 import BackButton from "../../components/BackButton";
 import { DISTRICTS, DISTRICT_BLOCKS } from "../../utils/districtData";
 import api from "../../services/api";
+
+const safeParseJSON = (str: any, fallback: any = []) => {
+  if (!str) return fallback;
+  if (typeof str !== "string") return str || fallback;
+  if (str === "null" || str === "None" || str === "undefined") return fallback;
+  try {
+    const parsed = JSON.parse(str);
+    return parsed || fallback;
+  } catch (e) {
+    if (str.includes(',')) {
+      return str.split(',').map((name: string) => ({
+        name: name.trim(),
+        type: 'file',
+        content: name.trim()
+      }));
+    }
+    return [{
+      name: str.trim(),
+      type: 'file',
+      content: str.trim()
+    }];
+  }
+};
 
 const mapToFrontend = (item: any): CoreEngagementRecord => ({
   id: item.id,
@@ -18,7 +41,7 @@ const mapToFrontend = (item: any): CoreEngagementRecord => ({
   other_engagement_type: item.other_engagement_type || "",
   alumni_count: item.alumni_count || 0,
   amount_collected: item.amount_collected || 0,
-  proof_files: JSON.parse(item.proof_files || "[]"),
+  proof_files: safeParseJSON(item.proof_files, []),
   important_attendees: item.important_attendees || "",
   remarks: item.remarks || "",
   entered_by: item.entered_by || "Unknown",
@@ -109,6 +132,7 @@ export default function CoreEngagement() {
 
   const [data, setData] = useState<CoreEngagementRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const [currentUser, setCurrentUser] = useState<any>(null);
 
   const fetchRecords = async () => {
     setLoading(true);

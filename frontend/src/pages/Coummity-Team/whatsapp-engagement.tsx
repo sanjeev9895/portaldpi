@@ -1,11 +1,23 @@
 import { useState, useEffect, useMemo } from "react";
 import { 
   Search, Plus, Eye, Pencil, Trash2, X, MessageSquare, 
-  Link2, User, Users, CheckCircle, XCircle, TrendingUp, ChevronDown, Clock, History 
+  Link2, Users, CheckCircle, XCircle, TrendingUp, ChevronDown, Clock, History 
 } from "lucide-react";
 import BackButton from "../../components/BackButton";
 import { DISTRICTS, DISTRICT_BLOCKS } from "../../utils/districtData";
 import api from "../../services/api";
+
+const safeParseJSON = (str: any, fallback: any = []) => {
+  if (!str) return fallback;
+  if (typeof str !== "string") return str || fallback;
+  if (str === "null" || str === "None" || str === "undefined") return fallback;
+  try {
+    const parsed = JSON.parse(str);
+    return parsed || fallback;
+  } catch (e) {
+    return fallback;
+  }
+};
 
 const mapToFrontend = (item: any): WhatsAppRecord => ({
   id: item.id,
@@ -22,7 +34,7 @@ const mapToFrontend = (item: any): WhatsAppRecord => ({
   last_msg_responses: item.last_msg_responses || "",
   activity_status: item.activity_status || "Medium",
   changes_count: item.changes_count || 0,
-  history: JSON.parse(item.history_json || "[]"),
+  history: safeParseJSON(item.history_json, []),
   entered_by: item.entered_by || "Unknown",
   entered_time: item.entered_time || "",
 });
