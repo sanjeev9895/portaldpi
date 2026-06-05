@@ -8,7 +8,7 @@ from sqlalchemy.orm import sessionmaker
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 # Local SQLite database
-DATABASE_URL = "sqlite:///./vizhuthugal.db"
+DATABASE_URL = "sqlite:///./vizhuthugaldb.db"
 
 engine = create_engine(
     DATABASE_URL,

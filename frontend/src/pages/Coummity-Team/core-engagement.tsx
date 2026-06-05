@@ -766,7 +766,7 @@ export default function CoreEngagement() {
               <thead>
                 <tr className="bg-slate-900 text-white">
                   {[
-                    "Sl No", "District", "Block", "School Name", "School Type", 
+                    "S No", "District", "Block", "School Name", "School Type", 
                     "School Category", "Type of Engagement", "Alumni Engaged", 
                     "Amount Collected (₹)", "Proof", "Important Attendies", "Remarks", 
                     "Entered By", "Action"
