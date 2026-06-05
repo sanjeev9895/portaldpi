@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, HTTPException, Query
+﻿from fastapi import FastAPI, Depends, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 # pyrefly: ignore [missing-import]
 from sqlalchemy.orm import Session
@@ -195,7 +195,7 @@ def get_school_community(id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="School Community record not found")
     return record
 
-
+    
 @app.put("/school-community/{id}", response_model=schemas.SchoolCommunityResponse, tags=["Alumni Community Registry"])
 def update_school_community(
     id: int,

@@ -1,10 +1,6 @@
-import {
-  ArrowLeft,
-} from 'lucide-react'
+import { ArrowLeft } from 'lucide-react'
 
-import {
-  useNavigate,
-} from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 
 export default function BackButton() {
 
