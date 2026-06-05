@@ -5,6 +5,48 @@ import {
 } from "lucide-react";
 import { DISTRICTS, DISTRICT_BLOCKS } from "../../utils/districtData";
 import BackButton from "../../components/BackButton";
+import api from "../../services/api";
+
+const safeParseJSON = (str: any, fallback: any = []) => {
+  if (!str) return fallback;
+  if (typeof str !== "string") return str || fallback;
+  if (str === "null" || str === "None" || str === "undefined") return fallback;
+  try {
+    const parsed = JSON.parse(str);
+    return parsed || fallback;
+  } catch (e) {
+    return fallback;
+  }
+};
+
+const mapToFrontend = (item: any): CoreTeamRecord => ({
+  id: item.id,
+  district: item.district || "",
+  block: item.block || "",
+  school_name: item.school_name || "",
+  school_type: item.school_type || "Primary School",
+  school_category: item.school_category || "Career Guidance",
+  hm_supportive: item.hm_supportive || "No",
+  smc_alumni_support: item.smc_alumni_support || "No",
+  ambassador_alumni_support: item.ambassador_alumni_support || "No",
+  approach_taken: item.approach_taken || "",
+  period_started: item.period_started || "",
+  period_ended: item.period_ended || "",
+  core_team_count: item.core_team_count || 0,
+  core_team_status: item.core_team_status || "Not Formed",
+  core_team_platforms: safeParseJSON(item.core_team_platforms, []),
+  other_platform: item.other_platform || "",
+  platform_link: item.platform_link || "",
+  risk_challenge: item.risk_challenge || "",
+  mitigation_taken: item.mitigation_taken || "",
+  take_back: item.take_back || "",
+  proof_files: safeParseJSON(item.proof_files, []),
+  media_content: item.media_content || "",
+  celebrated_status: item.celebrated_status || "No",
+  entered_by: item.entered_by || "Unknown",
+  entered_time: item.entered_time || "",
+});
+
 
 type ProofFile = {
   name: string;
@@ -122,6 +164,32 @@ export default function CoreTeamFormation() {
   const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
   const [currentUser, setCurrentUser] = useState<any>(null);
 
+  const [data, setData] = useState<CoreTeamRecord[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchRecords = async () => {
+    setLoading(true);
+    try {
+      const res = await api.get('/core-team-formation');
+      const items = res.data;
+      if (Array.isArray(items)) {
+        setData(items.map(mapToFrontend));
+      }
+    } catch (err) {
+      console.error("FAILED TO FETCH CORE TEAMS:", err);
+      const saved = localStorage.getItem("core_teams");
+      if (saved) {
+        try {
+          setData(JSON.parse(saved));
+        } catch (e) {
+          console.error(e);
+        }
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     const userStr = localStorage.getItem("user");
     if (userStr) {
@@ -131,78 +199,13 @@ export default function CoreTeamFormation() {
         console.error(e);
       }
     }
+    fetchRecords();
   }, []);
-
-  const [data, setData] = useState<CoreTeamRecord[]>(() => {
-    const saved = localStorage.getItem("core_teams");
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch (e) {
-        console.error(e);
-      }
-    }
-    const defaultData: CoreTeamRecord[] = [
-      {
-        id: 1,
-        district: "Madurai",
-        block: "Madurai East",
-        school_name: "Govt Hr Sec School, Madurai",
-        school_type: "High Sec School",
-        school_category: "Centinary School",
-        hm_supportive: "Yes",
-        smc_alumni_support: "Yes",
-        ambassador_alumni_support: "Yes",
-        approach_taken: "Key People -HM",
-        period_started: "2026-05-01",
-        period_ended: "2026-05-15",
-        core_team_count: 28,
-        core_team_status: "Formed",
-        core_team_platforms: ["WhatsApp", "Telegram"],
-        platform_link: "https://chat.whatsapp.com/GHSSAlumni2025",
-        risk_challenge: "Coordination with remote alumni",
-        mitigation_taken: "Assigned block leaders",
-        take_back: "Need regular updates",
-        proof_files: [],
-        media_content: "Inaugural event photos",
-        celebrated_status: "Yes",
-        entered_by: "State Admin",
-        entered_time: "2026-06-01, 10:00:00 AM",
-      },
-      {
-        id: 2,
-        district: "Tiruchirappalli",
-        block: "Thiruverumbur",
-        school_name: "St. Joseph's Middle School",
-        school_type: "Middle School",
-        school_category: "Vetri Palligal School",
-        hm_supportive: "No",
-        smc_alumni_support: "Yes",
-        ambassador_alumni_support: "No",
-        approach_taken: "Organized Meet - Hm",
-        period_started: "2026-05-10",
-        period_ended: "2026-05-20",
-        core_team_count: 18,
-        core_team_status: "Not Formed",
-        core_team_platforms: ["Facebook"],
-        platform_link: "https://facebook.com/groups/stjosephalumni",
-        risk_challenge: "HM supportive attitude was lacking initially",
-        mitigation_taken: "Addressed HM concerns during SMC meet",
-        take_back: "Persistence is key",
-        proof_files: [],
-        media_content: "SMC meeting photos",
-        celebrated_status: "No",
-        entered_by: "Manager User",
-        entered_time: "2026-06-02, 11:30:00 AM",
-      }
-    ];
-    localStorage.setItem("core_teams", JSON.stringify(defaultData));
-    return defaultData;
-  });
 
   useEffect(() => {
     localStorage.setItem("core_teams", JSON.stringify(data));
   }, [data]);
+
 
   const [formData, setFormData] = useState<FormData>(EMPTY_FORM);
   const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({});
@@ -315,47 +318,45 @@ export default function CoreTeamFormation() {
     setShowModal(true);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!validate()) return;
-    const calculatedStatus = Number(formData.core_team_count) > 25 ? "Formed" : "Not Formed";
+    const calculatedStatus = Number(formData.core_team_count) >= 25 ? "Formed" : "Not Formed";
 
-    if (editId !== null) {
-      setData(
-        data.map((item) =>
-          item.id === editId
-            ? {
-                ...item,
-                district: formData.district,
-                block: formData.block,
-                school_name: formData.school_name,
-                school_type: formData.school_type,
-                school_category: formData.school_category,
-                hm_supportive: formData.hm_supportive,
-                smc_alumni_support: formData.smc_alumni_support,
-                ambassador_alumni_support: formData.ambassador_alumni_support,
-                approach_taken: formData.approach_taken,
-                period_started: formData.period_started,
-                period_ended: formData.period_ended,
-                core_team_count: Number(formData.core_team_count),
-                core_team_status: calculatedStatus,
-                core_team_platforms: formData.core_team_platforms,
-                other_platform: formData.core_team_platforms.includes("Others") ? formData.other_platform : "",
-                platform_link: formData.platform_link,
-                risk_challenge: formData.risk_challenge,
-                mitigation_taken: formData.mitigation_taken,
-                take_back: formData.take_back,
-                proof_files: formData.proof_files,
-                media_content: formData.media_content,
-                celebrated_status: formData.celebrated_status,
-              }
-            : item
-        )
-      );
-    } else {
-      setData([
-        ...data,
-        {
-          id: Date.now(),
+    try {
+      if (editId !== null) {
+        const item = data.find((d) => d.id === editId);
+        if (!item) return;
+
+        const payload = {
+          district: formData.district,
+          block: formData.block,
+          school_name: formData.school_name,
+          school_type: formData.school_type,
+          school_category: formData.school_category,
+          hm_supportive: formData.hm_supportive,
+          smc_alumni_support: formData.smc_alumni_support,
+          ambassador_alumni_support: formData.ambassador_alumni_support,
+          approach_taken: formData.approach_taken,
+          period_started: formData.period_started,
+          period_ended: formData.period_ended,
+          core_team_count: Number(formData.core_team_count),
+          core_team_status: calculatedStatus,
+          core_team_platforms: formData.core_team_platforms,
+          other_platform: formData.core_team_platforms.includes("Others") ? formData.other_platform : "",
+          platform_link: formData.platform_link,
+          risk_challenge: formData.risk_challenge,
+          mitigation_taken: formData.mitigation_taken,
+          take_back: formData.take_back,
+          proof_files: formData.proof_files,
+          media_content: formData.media_content,
+          celebrated_status: formData.celebrated_status,
+          entered_by: item.entered_by || currentUser?.name || 'Unknown',
+          entered_time: item.entered_time || new Date().toLocaleString(),
+        };
+
+        await api.put(`/core-team-formation/${editId}`, payload);
+      } else {
+        const payload = {
           district: formData.district,
           block: formData.block,
           school_name: formData.school_name,
@@ -380,16 +381,29 @@ export default function CoreTeamFormation() {
           celebrated_status: formData.celebrated_status,
           entered_by: currentUser?.name || 'Unknown',
           entered_time: new Date().toLocaleString(),
-        },
-      ]);
+        };
+
+        await api.post('/core-team-formation', payload);
+      }
+      setShowModal(false);
+      fetchRecords();
+    } catch (err) {
+      console.error("FAILED TO SAVE CORE TEAM COMMITTEE:", err);
+      alert("Failed to save core team committee record. Please try again.");
     }
-    setShowModal(false);
   };
 
-  const handleDelete = (id: number) => {
-    setData(data.filter((item) => item.id !== id));
-    setDeleteConfirm(null);
+  const handleDelete = async (id: number) => {
+    try {
+      await api.delete(`/core-team-formation/${id}`);
+      setDeleteConfirm(null);
+      fetchRecords();
+    } catch (err) {
+      console.error("FAILED TO DELETE CORE TEAM COMMITTEE:", err);
+      alert("Failed to delete core team committee record.");
+    }
   };
+
 
   const filteredData = data.filter((item) => {
     // 1. Search (by School Name)
@@ -1041,7 +1055,16 @@ export default function CoreTeamFormation() {
                 </tr>
               </thead>
               <tbody>
-                {filteredData.length === 0 ? (
+                {loading ? (
+                  <tr>
+                    <td colSpan={19} className="px-5 py-16 text-center text-slate-400 text-sm">
+                      <div className="flex items-center justify-center gap-2">
+                        <div className="w-5 h-5 border-2 border-violet-600 border-t-transparent rounded-full animate-spin"></div>
+                        Loading records from server...
+                      </div>
+                    </td>
+                  </tr>
+                ) : filteredData.length === 0 ? (
                   <tr>
                     <td colSpan={19} className="px-5 py-16 text-center text-slate-400 text-sm">
                       No core committees found. Add one to get started.

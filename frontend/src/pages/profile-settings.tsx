@@ -9,6 +9,7 @@ import {
   MapPin,
   Briefcase,
   Pencil,
+  Database,
 } from 'lucide-react'
 
 import {
@@ -26,6 +27,7 @@ export default function ProfileSettings() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [currentUser, setCurrentUser] = useState<any>(null)
   const [employeeId, setEmployeeId] = useState<number | null>(null)
+  const [resetting, setResetting] = useState(false)
 
   const [formData, setFormData] = useState({
     name: '',
@@ -251,6 +253,29 @@ export default function ProfileSettings() {
     setIsEditing(false)
     alert('Profile Updated Successfully')
   }
+
+  const handleResetDatabase = async () => {
+    const confirmReset = window.confirm(
+      "Are you absolutely sure you want to reset and re-seed the Supabase database? This will delete all current entries and cannot be undone."
+    );
+    if (!confirmReset) return;
+
+    setResetting(true);
+    try {
+      const res = await api.post('/db/reset');
+      if (res.data && res.data.status === 'success') {
+        alert("Supabase database reset and seeded successfully!");
+      } else {
+        alert("Database reset completed with unexpected response.");
+      }
+    } catch (err: any) {
+      console.error("Failed to reset database:", err);
+      const errMsg = err.message || "Unknown error";
+      alert(`Failed to reset database: ${errMsg}`);
+    } finally {
+      setResetting(false);
+    }
+  };
 
   return (
 
@@ -801,6 +826,44 @@ export default function ProfileSettings() {
               </div>
             )
           }
+
+          {/* Database Reset Section (Admin Only) */}
+          {currentUser?.role === 'admin' && (
+            <div className="mt-12 pt-8 border-t border-slate-200 text-left">
+              <h3 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
+                <Database size={20} className="text-red-500" />
+                Database Administration (Supabase)
+              </h3>
+              <p className="text-sm text-slate-500 mb-6">
+                Perform administrative database tasks. The button below will completely clear (remove) all existing records from all Supabase tables and re-insert (seed) the initial default mock data.
+              </p>
+              
+              <div className="bg-red-50 border border-red-200 rounded-3xl p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="text-left">
+                  <h4 className="text-sm font-bold text-red-800">Danger Zone: Reset & Seed Database</h4>
+                  <p className="text-xs text-red-600 mt-1">
+                    This will delete all current records in Supabase and restore the database to its default state. This action cannot be undone.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleResetDatabase}
+                  disabled={resetting}
+                  className="bg-red-600 hover:bg-red-700 active:scale-95 disabled:opacity-50 disabled:scale-100 transition-all text-white px-6 py-3 rounded-xl text-sm font-semibold shadow-md flex items-center justify-center gap-2 whitespace-nowrap self-start md:self-auto"
+                >
+                  {resetting ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      Resetting...
+                    </>
+                  ) : (
+                    'Reset & Seed Database'
+                  )}
+                </button>
+              </div>
+            </div>
+          )}
+
 
         </div>
 
