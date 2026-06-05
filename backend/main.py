@@ -1,8 +1,10 @@
 from fastapi import FastAPI, Depends, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
+# pyrefly: ignore [missing-import]
 from sqlalchemy.orm import Session
 from typing import Optional
 from dotenv import load_dotenv
+import json
 
 # Load environment variables
 load_dotenv()
@@ -37,6 +39,14 @@ def get_db():
         yield db
     finally:
         db.close()
+
+
+def serialize_db_payload(data_dict: dict) -> dict:
+    # Ensure any list/dict fields are stored as JSON-serialized strings in database
+    for key, value in list(data_dict.items()):
+        if isinstance(value, (list, dict)):
+            data_dict[key] = json.dumps(value)
+    return data_dict
 
 
 @app.get("/", tags=["Health"])
@@ -178,7 +188,7 @@ def create_school_community(
     data: schemas.SchoolCommunityCreate,
     db: Session = Depends(get_db)
 ):
-    record = models.SchoolCommunity(**data.model_dump())
+    record = models.SchoolCommunity(**serialize_db_payload(data.model_dump()))
     db.add(record)
     db.commit()
     db.refresh(record)
@@ -217,7 +227,7 @@ def update_school_community(
     if not record:
         raise HTTPException(status_code=404, detail="School Community record not found")
 
-    for key, value in data.model_dump().items():
+    for key, value in serialize_db_payload(data.model_dump()).items():
         setattr(record, key, value)
 
     db.commit()
@@ -245,7 +255,7 @@ def create_core_team_formation(
     data: schemas.CoreTeamFormationCreate,
     db: Session = Depends(get_db)
 ):
-    record_data = data.model_dump()
+    record_data = serialize_db_payload(data.model_dump())
     count = record_data.get("core_team_count", 0)
     record_data["core_team_status"] = "Formed" if count >= 25 else "Not Formed"
 
@@ -291,7 +301,7 @@ def update_core_team_formation(
     if not record:
         raise HTTPException(status_code=404, detail="Core Team Formation record not found")
 
-    update_data = data.model_dump()
+    update_data = serialize_db_payload(data.model_dump())
     count = update_data.get("core_team_count", 0)
     update_data["core_team_status"] = "Formed" if count >= 25 else "Not Formed"
 
@@ -324,7 +334,7 @@ def create_core_engagement(
     data: schemas.CoreEngagementCreate,
     db: Session = Depends(get_db)
 ):
-    record = models.CoreEngagement(**data.model_dump())
+    record = models.CoreEngagement(**serialize_db_payload(data.model_dump()))
     db.add(record)
     db.commit()
     db.refresh(record)
@@ -366,7 +376,7 @@ def update_core_engagement(
     if not record:
         raise HTTPException(status_code=404, detail="Core Engagement record not found")
 
-    for key, value in data.model_dump().items():
+    for key, value in serialize_db_payload(data.model_dump()).items():
         setattr(record, key, value)
 
     db.commit()
@@ -395,7 +405,7 @@ def create_whatsapp_engagement(
     data: schemas.WhatsAppEngagementCreate,
     db: Session = Depends(get_db)
 ):
-    record = models.WhatsAppEngagement(**data.model_dump())
+    record = models.WhatsAppEngagement(**serialize_db_payload(data.model_dump()))
     db.add(record)
     db.commit()
     db.refresh(record)
@@ -437,7 +447,7 @@ def update_whatsapp_engagement(
     if not record:
         raise HTTPException(status_code=404, detail="WhatsApp Engagement record not found")
 
-    for key, value in data.model_dump().items():
+    for key, value in serialize_db_payload(data.model_dump()).items():
         setattr(record, key, value)
 
     db.commit()

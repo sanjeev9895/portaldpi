@@ -1,5 +1,6 @@
-from pydantic import BaseModel
-from typing import Optional, List
+from pydantic import BaseModel, field_validator
+from typing import Optional, List, Any
+import json
 
 # =====================================
 # AUTH SCHEMAS
@@ -73,11 +74,21 @@ class CoreEngagementCreate(BaseModel):
     other_engagement_type: Optional[str] = None
     alumni_count: int = 0
     amount_collected: int = 0
-    proof_files: Optional[str] = None
+    proof_files: Optional[List[Any]] = None
     important_attendees: Optional[str] = None
     remarks: Optional[str] = None
     entered_by: Optional[str] = None
     entered_time: Optional[str] = None
+
+    @field_validator('proof_files', mode='before')
+    @classmethod
+    def parse_proof_files(cls, v):
+        if isinstance(v, str):
+            try:
+                return json.loads(v)
+            except Exception:
+                return []
+        return v
 
 class CoreEngagementResponse(CoreEngagementCreate):
     id: int
@@ -103,17 +114,27 @@ class CoreTeamFormationCreate(BaseModel):
     period_ended: Optional[str] = None
     core_team_count: int = 0
     core_team_status: Optional[str] = None
-    core_team_platforms: Optional[str] = None  # JSON string
+    core_team_platforms: Optional[List[Any]] = None  # JSON string
     other_platform: Optional[str] = None
     platform_link: Optional[str] = None
     risk_challenge: Optional[str] = None
     mitigation_taken: Optional[str] = None
     take_back: Optional[str] = None
-    proof_files: Optional[str] = None  # JSON string
+    proof_files: Optional[List[Any]] = None  # JSON string
     media_content: Optional[str] = None
     celebrated_status: str = "No"
     entered_by: Optional[str] = None
     entered_time: Optional[str] = None
+
+    @field_validator('core_team_platforms', 'proof_files', mode='before')
+    @classmethod
+    def parse_core_team_fields(cls, v):
+        if isinstance(v, str):
+            try:
+                return json.loads(v)
+            except Exception:
+                return []
+        return v
 
 class CoreTeamFormationResponse(CoreTeamFormationCreate):
     id: int
@@ -139,17 +160,27 @@ class SchoolCommunityCreate(BaseModel):
     period_ended: Optional[str] = None
     mobilized_count: int = 0
     mobilized_status: Optional[str] = None
-    alumni_group_platforms: Optional[str] = None  # JSON string
+    alumni_group_platforms: Optional[List[Any]] = None  # JSON string
     other_platform: Optional[str] = None
     platform_link: Optional[str] = None
     risk_challenge: Optional[str] = None
     mitigation_taken: Optional[str] = None
     take_back: Optional[str] = None
-    proof_files: Optional[str] = None  # JSON string
+    proof_files: Optional[List[Any]] = None  # JSON string
     media_content: Optional[str] = None
     celebrated_status: str = "No"
     entered_by: Optional[str] = None
     entered_time: Optional[str] = None
+
+    @field_validator('alumni_group_platforms', 'proof_files', mode='before')
+    @classmethod
+    def parse_school_comm_fields(cls, v):
+        if isinstance(v, str):
+            try:
+                return json.loads(v)
+            except Exception:
+                return []
+        return v
 
 class SchoolCommunityResponse(SchoolCommunityCreate):
     id: int
@@ -175,9 +206,19 @@ class WhatsAppEngagementCreate(BaseModel):
     last_msg_responses: Optional[str] = None
     activity_status: Optional[str] = None
     changes_count: int = 0
-    history_json: Optional[str] = None
+    history_json: Optional[List[Any]] = None
     entered_by: Optional[str] = None
     entered_time: Optional[str] = None
+
+    @field_validator('history_json', mode='before')
+    @classmethod
+    def parse_history_json(cls, v):
+        if isinstance(v, str):
+            try:
+                return json.loads(v)
+            except Exception:
+                return []
+        return v
 
 class WhatsAppEngagementResponse(WhatsAppEngagementCreate):
     id: int
