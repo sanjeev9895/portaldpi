@@ -417,7 +417,7 @@ const api = {
     return { data: parsedData };
   },
 
-  async post(url: string, payload: any, config?: any) {
+  async post(url: string, payload?: any, _config?: any) {
     const { tableName } = parsePath(url);
     
     // Special Database Reset route handler
@@ -441,7 +441,7 @@ const api = {
     return { data: parseRow(data?.[0]) };
   },
 
-  async put(url: string, payload: any, config?: any) {
+  async put(url: string, payload: any, _config?: any) {
     const { tableName, id } = parsePath(url);
     if (id === undefined) throw new Error("ID required for PUT request");
 
@@ -460,7 +460,7 @@ const api = {
     return { data: parseRow(data?.[0]) };
   },
 
-  async delete(url: string, config?: any) {
+  async delete(url: string, _config?: any) {
     const { tableName, id } = parsePath(url);
     if (id === undefined) throw new Error("ID required for DELETE request");
 
@@ -476,6 +476,7 @@ const api = {
     
     return { data: { message: `${tableName} deleted` } };
   }
+
 };
 
 export default api;
