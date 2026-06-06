@@ -183,6 +183,7 @@ language plpgsql
 security definer
 set search_path = public, extensions
 as $$
+#variable_conflict use_column
 declare
     v_email text := lower(trim(p_email));
     v_role  text := coalesce(nullif(lower(trim(p_role)), ''), 'employee');
@@ -212,6 +213,7 @@ language plpgsql
 security definer
 set search_path = public, extensions
 as $$
+#variable_conflict use_column
 declare
     v_email text := lower(trim(p_email));
 begin
@@ -350,4 +352,4 @@ where not exists (select 1 from public.core_team_formations);
 -- Done. Demo logins:  admin@gmail.com / admin1
 --                     manager@gmail.com / manager1
 --                     employee@gmail.com / employee1
--- ============================================================================
+-- =================
