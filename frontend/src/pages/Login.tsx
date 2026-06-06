@@ -10,6 +10,8 @@ import {
 
 import { useNavigate } from 'react-router-dom'
 
+import api from '../services/api'
+
 
 export default function Login() {
 
@@ -29,14 +31,14 @@ export default function Login() {
   const [showPassword, setShowPassword] =
     useState(false)
 
-  const [loading, ] =
+  const [loading, setLoading] =
     useState(false)
 
   // =====================================
-  // LOGIN
+  // LOGIN (backend + Supabase)
   // =====================================
 
-const handleLogin = () => {
+const handleLogin = async () => {
 
   // =====================================
   // VALIDATION
@@ -54,52 +56,32 @@ const handleLogin = () => {
     return
   }
 
-  // =====================================
-  // STATIC LOGIN
-  // =====================================
+  setLoading(true)
 
-  let loggedInUser = null;
+  try {
+    const res = await api.post('/auth/login', {
+      email: email.trim().toLowerCase(),
+      password,
+    })
 
-  if (email === 'admin@gmail.com' && password === 'admin1') {
-    loggedInUser = {
-      name: 'State Admin',
-      email: 'admin@gmail.com',
-      role: 'admin',
-    };
-  } else if (
-    (email === 'manager@gmail.com' && password === 'manager1') ||
-    (email === 'resource@gmail.com' && password === 'resource1')
-  ) {
-    loggedInUser = {
-      name: 'Manager User',
-      email: email,
-      role: 'manager',
-    };
-  } else if (email === 'employee@gmail.com' && password === 'employee1') {
-    loggedInUser = {
-      name: 'Employee User',
-      email: 'employee@gmail.com',
-      role: 'employee',
-    };
-  } else {
-    // Check registered users in localStorage
-    const registeredUsers = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
-    const matched = registeredUsers.find((u: any) => u.email === email && u.password === password);
-    if (matched) {
-      loggedInUser = {
-        name: matched.name,
-        email: matched.email,
-        role: matched.role || 'employee',
-      };
-    }
-  }
+    const { access_token, user } = res.data
 
-  if (loggedInUser) {
-    localStorage.setItem('user', JSON.stringify(loggedInUser));
-    alert('Login Successful');
-    navigate('/dashboard');
-  } else {
-    alert('Login Failed: Please check your credentials or register for an account.');
+    // Persist the session: token for API calls, user for the UI.
+    localStorage.setItem('token', access_token)
+    localStorage.setItem('user', JSON.stringify({
+      name: user.name,
+      email: user.email,
+      role: user.role,
+    }))
+
+    navigate('/dashboard')
+  } catch (err: any) {
+    const message =
+      err?.response?.data?.detail ||
+      'Login failed. Please check your credentials or register for an account.'
+    alert(message)
+  } finally {
+    setLoading(false)
   }
 }
 

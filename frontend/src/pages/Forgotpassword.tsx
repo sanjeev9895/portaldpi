@@ -2,29 +2,43 @@ import { useState } from 'react';
 
 import {
   Mail,
+  Lock,
   ArrowLeft,
 } from 'lucide-react';
 
 import { useNavigate } from 'react-router-dom';
+import api from '../services/api';
 
 export default function ForgotPassword() {
 
   const navigate = useNavigate();
 
   const [email, setEmail] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleReset = () => {
+  const handleReset = async () => {
 
-    if (email) {
+    if (!email || !newPassword) {
+      alert('Please enter your email and a new password');
+      return;
+    }
 
-      alert(
-        'Password reset link sent to your email'
-      );
-
-    } else {
-
-      alert('Please enter your email');
-
+    setLoading(true);
+    try {
+      await api.post('/auth/reset-password', {
+        email: email.trim().toLowerCase(),
+        new_password: newPassword,
+      });
+      alert('Password updated successfully. Please log in.');
+      navigate('/login');
+    } catch (err: any) {
+      const message =
+        err?.response?.data?.detail ||
+        'Could not reset password. Please check the email and try again.';
+      alert(message);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -86,7 +100,7 @@ export default function ForgotPassword() {
 
           <p className="text-slate-500 text-sm leading-relaxed">
 
-            Enter your email to receive a password reset link
+            Enter your email and choose a new password
 
           </p>
 
@@ -122,20 +136,51 @@ export default function ForgotPassword() {
 
         </div>
 
+        {/* New Password */}
+        <div className="mb-5">
+
+          <label className="block text-xs font-semibold text-slate-700 mb-2">
+
+            New Password
+
+          </label>
+
+          <div className="relative">
+
+            <Lock
+              size={18}
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+            />
+
+            <input
+              type="password"
+              placeholder="Enter a new password"
+              className="w-full border border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none pl-10 pr-3 py-2.5 rounded-xl text-sm transition-all"
+              value={newPassword}
+              onChange={(e) =>
+                setNewPassword(e.target.value)
+              }
+            />
+
+          </div>
+
+        </div>
+
         {/* Reset Button */}
         <button
           onClick={handleReset}
-          className="w-full bg-blue-600 hover:bg-blue-700 active:scale-[0.98] transition-all duration-300 text-white py-2.5 rounded-xl text-sm font-semibold shadow-md"
+          disabled={loading}
+          className="w-full bg-blue-600 hover:bg-blue-700 active:scale-[0.98] transition-all duration-300 text-white py-2.5 rounded-xl text-sm font-semibold shadow-md disabled:opacity-80"
         >
 
-          Send Reset Link
+          {loading ? 'Updating...' : 'Update Password'}
 
         </button>
 
         {/* Footer */}
         <p className="text-center text-[11px] text-slate-400 mt-6">
 
-          © 2026 Resource Management System
+          © 2026 Vizhuthugal Alumni Connect
 
         </p>
 

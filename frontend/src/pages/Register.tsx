@@ -24,42 +24,40 @@ export default function Register() {
 
   const [showPassword, setShowPassword] = useState(false);
 
-  const handleRegister = () => {
-    if (
-      name &&
-      phone &&
-      email &&
-      password
-    ) {
-      const registeredUsers = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
-      if (registeredUsers.some((u: any) => u.email === email)) {
-        alert('Email is already registered!');
-        return;
-      }
-      
-      // Save in localStorage for auth validation
-      registeredUsers.push({ name, phone, email, password, role });
-      localStorage.setItem('registeredUsers', JSON.stringify(registeredUsers));
+  const handleRegister = async () => {
+    if (!name || !phone || !email || !password) {
+      alert('Please fill all fields');
+      return;
+    }
 
-      // Save in SQLite Database as Employee
-      const todayStr = new Date(Date.now() - (new Date()).getTimezoneOffset() * 60000).toISOString().split('T')[0];
-      api.post('/employees', {
-        name: name,
-        email: email,
-        contact: phone,
-        department: 'Development',
-        role: role.charAt(0).toUpperCase() + role.slice(1),
-        joining_date: todayStr
-      }).then(() => {
-        console.log('Employee stored in backend');
-      }).catch(err => {
-        console.error('Failed to store employee in backend:', err);
+    try {
+      // Create the account in the backend (stored in Supabase, password hashed,
+      // and mirrored into the Employees directory automatically).
+      const res = await api.post('/auth/register', {
+        name,
+        phone,
+        email: email.trim().toLowerCase(),
+        password,
+        role,
       });
 
+      const { access_token, user } = res.data;
+
+      // Auto-login the newly created user.
+      localStorage.setItem('token', access_token);
+      localStorage.setItem('user', JSON.stringify({
+        name: user.name,
+        email: user.email,
+        role: user.role,
+      }));
+
       alert('Registration Successful');
-      navigate('/login');
-    } else {
-      alert('Please fill all fields');
+      navigate('/dashboard');
+    } catch (err: any) {
+      const message =
+        err?.response?.data?.detail ||
+        'Registration failed. Please try again.';
+      alert(message);
     }
   };
 
