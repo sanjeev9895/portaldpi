@@ -1,10 +1,11 @@
-from fastapi import FastAPI, Depends, HTTPException, Query
+﻿from fastapi import FastAPI, Depends, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 # pyrefly: ignore [missing-import]
 from sqlalchemy.orm import Session
 from typing import Optional
 from dotenv import load_dotenv
 import json
+from fastapi.middleware.cors import CORSMiddleware
 
 # Load environment variables
 load_dotenv()
@@ -22,6 +23,18 @@ app = FastAPI(
     description="Backend API for Vizhuthugal Dashboard — Employees, Attendance, Alumni Community Registry & Core Team Formation",
     version="1.0.0",
 )
+
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "https://vizhuthugal-dashboard.vercel.app"
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 
 # Configure CORS middleware to allow the frontend to access
 app.add_middleware(
