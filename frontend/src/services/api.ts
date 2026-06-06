@@ -13,9 +13,21 @@
  *   - auth endpoints map to Postgres RPC functions (see supabase_setup.sql)
  */
 
-import { supabase } from './supabaseClient';
+import { supabase, isSupabaseConfigured } from './supabaseClient';
 
 type ApiResponse<T = any> = { data: T };
+
+// Surface a clear, actionable error when env vars are missing instead of a
+// cryptic network failure against the placeholder client.
+function ensureConfigured(): void {
+  if (!isSupabaseConfigured) {
+    throw apiError(
+      'Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY ' +
+        '(locally in frontend/.env; on Vercel in Project Settings -> Environment Variables), then rebuild/redeploy.',
+      503
+    );
+  }
+}
 
 // REST-ish resource -> Supabase table name.
 const TABLE_MAP: Record<string, string> = {
@@ -71,6 +83,7 @@ function makeToken(user: { email?: string }): string {
 // Auth (maps to SECURITY DEFINER Postgres functions)
 // ---------------------------------------------------------------------------
 async function authPost(action: string, payload: any): Promise<ApiResponse> {
+  ensureConfigured();
   if (action === 'login') {
     const { data, error } = await supabase.rpc('login_user', {
       p_email: (payload?.email || '').trim().toLowerCase(),
@@ -116,6 +129,7 @@ async function authPost(action: string, payload: any): Promise<ApiResponse> {
 // REST verbs
 // ---------------------------------------------------------------------------
 async function get(path: string): Promise<ApiResponse> {
+  ensureConfigured();
   const { resource, id } = parsePath(path);
   const table = TABLE_MAP[resource];
   if (!table) throw apiError(`Unknown resource: ${resource}`, 404);
@@ -147,6 +161,7 @@ async function post(path: string, payload?: any): Promise<ApiResponse> {
     return { data: { status: 'success', message: 'Database is managed in Supabase.' } };
   }
 
+  ensureConfigured();
   const table = TABLE_MAP[resource];
   if (!table) throw apiError(`Unknown resource: ${resource}`, 404);
 
@@ -160,6 +175,7 @@ async function post(path: string, payload?: any): Promise<ApiResponse> {
 }
 
 async function put(path: string, payload?: any): Promise<ApiResponse> {
+  ensureConfigured();
   const { resource, id } = parsePath(path);
   const table = TABLE_MAP[resource];
   if (!table) throw apiError(`Unknown resource: ${resource}`, 404);
@@ -176,6 +192,7 @@ async function put(path: string, payload?: any): Promise<ApiResponse> {
 }
 
 async function del(path: string): Promise<ApiResponse> {
+  ensureConfigured();
   const { resource, id } = parsePath(path);
   const table = TABLE_MAP[resource];
   if (!table) throw apiError(`Unknown resource: ${resource}`, 404);
