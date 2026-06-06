@@ -49,10 +49,14 @@ import MentorshipTeam
 
 import CommunityTeam
   from './pages/communityteam';
-import CoreEngagement from './pages/Coummity-Team/core-engagement';
-import CoreTeamFormation from './pages/Coummity-Team/core-team-formation';
-import WhatsappEngagement from './pages/Coummity-Team/whatsapp-engagement';
-import SchoolCommunity from './pages/Coummity-Team/school-community';
+import CoreEngagement 
+  from './pages/Coummity-Team/core-engagement';
+import CoreTeamFormation
+  from './pages/Coummity-Team/core-team-formation';
+import WhatsappEngagement
+   from './pages/Coummity-Team/whatsapp-engagement';
+import SchoolCommunity
+   from './pages/Coummity-Team/school-community';
 
 export default function App() {
 
