@@ -37,6 +37,7 @@ const TABLE_MAP: Record<string, string> = {
   'core-team-formation': 'core_team_formations',
   'school-community': 'school_communities',
   'whatsapp-engagements': 'whatsapp_engagements',
+  'daily-work-reports': 'daily_work_reports',
 };
 
 // GET responses that the old backend wrapped as { data: rows }.

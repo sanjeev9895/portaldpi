@@ -142,6 +142,21 @@ create table if not exists public.core_team_formations (
     entered_time              varchar(100)
 );
 
+-- Daily Work Status Report (Ongoing Tasks + To Do For Tomorrow).
+-- The two task lists are stored as JSON text (array of
+-- {category, task_description, due_date, status}).
+create table if not exists public.daily_work_reports (
+    id             bigserial primary key,
+    resource_name  varchar(255) not null,
+    report_date    varchar(50),
+    team           varchar(255),
+    day            varchar(50),
+    ongoing_tasks  text default '[]',
+    tomorrow_tasks text default '[]',
+    entered_by     varchar(255),
+    entered_time   varchar(100)
+);
+
 -- ============================================================================
 -- 2. ROW LEVEL SECURITY
 -- ============================================================================
@@ -152,7 +167,8 @@ declare t text;
 begin
   foreach t in array array[
     'employees','attendance','core_engagements',
-    'whatsapp_engagements','school_communities','core_team_formations'
+    'whatsapp_engagements','school_communities','core_team_formations',
+    'daily_work_reports'
   ]
   loop
     execute format('alter table public.%I enable row level security;', t);
@@ -352,4 +368,4 @@ where not exists (select 1 from public.core_team_formations);
 -- Done. Demo logins:  admin@gmail.com / admin1
 --                     manager@gmail.com / manager1
 --                     employee@gmail.com / employee1
--- =================
+-- ============================================================================

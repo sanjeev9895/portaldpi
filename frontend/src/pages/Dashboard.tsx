@@ -10,6 +10,7 @@ import {
   CheckCircle,
   XCircle,
   Download,
+  ClipboardList,
 } from 'lucide-react'
 
 import {
@@ -18,6 +19,7 @@ import {
 } from 'react'
 
 import api from '../services/api'
+import DailyWorkReport from '../components/DailyWorkReport'
 import { useNavigate } from 'react-router-dom'
 
 import {
@@ -48,6 +50,7 @@ export default function Dashboard() {
   const [attendance, setAttendance] = useState<any[]>([])
   const [workDone, setWorkDone] = useState('')
   const [submittingAttendance, setSubmittingAttendance] = useState(false)
+  const [showDailyReport, setShowDailyReport] = useState(false)
 
   // Reports state for admin overview filter and downloads
   const [reportsList, setReportsList] = useState<any[]>([])
@@ -705,6 +708,19 @@ export default function Dashboard() {
           </div>
         </div>
       )}
+
+      {/* ===================================== */}
+      {/* DAILY WORK DONE */}
+      {/* ===================================== */}
+      <div className="flex justify-end">
+        <button
+          onClick={() => setShowDailyReport(true)}
+          className="inline-flex items-center gap-2 bg-indigo-600 text-white font-semibold px-5 py-3 rounded-2xl shadow-md hover:bg-indigo-700 active:scale-95 transition-all"
+        >
+          <ClipboardList size={18} />
+          Daily Work Done
+        </button>
+      </div>
 
       {/* ===================================== */}
       {/* STATS */}
@@ -1393,6 +1409,12 @@ export default function Dashboard() {
         }
 
       </div>
+
+      <DailyWorkReport
+        open={showDailyReport}
+        onClose={() => setShowDailyReport(false)}
+        currentUser={currentUser}
+      />
 
     </div>
   )
